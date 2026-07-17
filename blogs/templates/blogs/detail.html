@@ -11,7 +11,7 @@
     <p>{{ blog.content }}</p>
     <p>Posted: {{ blog.created_at }}</p>
 
-    <!-- if the blog isn't orphanes and the logged in user is the owner, create an edit button that redirects to the edit form -->
+    <!-- if the blog isn't orphaned and the logged in user is the owner, create an edit button that redirects to the edit form -->
     {% if not blog.is_orphaned and blog.author == request.user %}
     <a href="{% url 'edit_blog' blog.id %}">Edit</a>
 
@@ -55,7 +55,7 @@
     {% else %}
     <!-- if the user is not logged in, tell them to log in -->
     <p style="font-style: italic; color: midnightblue;">Please log in to leave a comment.</p>
-    {%endif %}
+    {% endif %}
 
     <!-- create a comment card for all the comments related to this post -->
     {% for comment in blog.comments.all %}
