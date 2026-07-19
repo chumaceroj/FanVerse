@@ -20,7 +20,15 @@
             </a>
         </h2>
         <!-- display author's name using function in models.py -->
-        <p>By: {{ blog.get_display_author }}</p>
+        {% if blog.is_orphaned %}
+        <p>By: orphan_account</p>
+        {% elif blog.is_anonymous %}
+        <p>By: Anonymous</p>
+        {% elif blog.author %}
+        <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
+        {% else %}
+        <p>By: deleted_user</p>
+        {% endif %}
         <!-- display preview of blog content (first 50 words) -->
         <p>{{ blog.content|truncatewords:50 }}</p>
 

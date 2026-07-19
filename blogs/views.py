@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Blog, Comment
+from .models import Blog, Comment, Profile
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 
@@ -136,6 +136,49 @@ def edit_comment(request, comment_id):
         comment.save()
         return redirect('blog_detail', blog_id=comment.blog.id)
     return render(request, 'blogs/edit_comment.html', {'comment': comment})
+
+def profile(request, username):
+    profile_user = get_object_or_404(User, username=username) # Find the user by their username
+    
+    try: # Find their profile (bio)
+        user_profile = Profile.objects.get(user=profile_user)
+    except Profile.DoesNotExist:
+        user_profile = None
+    
+    blogs = Blog.objects.filter( # Get their blogs, excluding orphaned and anonymized
+        author=profile_user,
+        is_orphaned=False,
+        is_anonymous=False
+    ).order_by('-created_at')
+    
+    comments = Comment.objects.filter( # Get their comments, excluding orphaned and anonymized
+        author=profile_user,
+        is_orphaned=False,
+        is_anonymous=False
+    ).order_by('-created_at')
+    
+    return render(request, 'blogs/profile.html', { # Send everything to the template
+        'profile_user': profile_user,
+        'user_profile': user_profile,
+        'blogs': blogs,
+        'comments': comments,
+    })
+
+def edit_profile(request, username):
+    profile_user = get_object_or_404(User, username=username)
+    
+    if profile_user != request.user: # Only the profile owner can edit their bio
+        return redirect('profile', username=username)
+    
+    try: # Get or create their profile
+        user_profile = Profile.objects.get(user=profile_user)
+    except Profile.DoesNotExist:
+        user_profile = Profile.objects.create(user=profile_user, biography='') # creates a blank bio if never created
+    if request.method == 'POST':
+        user_profile.biography = request.POST.get('biography')
+        user_profile.save()
+        return redirect('profile', username=username)
+    return render(request, 'blogs/edit_profile.html', {'user_profile': user_profile})
 
 def login_user(request):
     if request.method == 'POST':

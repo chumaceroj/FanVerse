@@ -99,3 +99,7 @@ class Comment(models.Model):
         if self.author is None:
             return "deleted_user"
         return self.author.username
+    
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    biography = models.CharField(max_length=150)                      

@@ -1,0 +1,16 @@
+{% extends 'blogs/base.html' %}
+{% block content %}
+
+<div class="main-container">
+    <h2>Edit Profile</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label>Bio:</label><br>
+        <textarea name="biography" rows="4"
+            style="width: 100%; border-radius: 8px; border: 1px solid midnightblue; padding: 8px;">{{ user_profile.biography }}</textarea>
+        <br><br>
+        <button type="submit" class="button">Save</button>
+    </form>
+    <a href="{% url 'profile' request.user.username %}">Cancel</a>
+</div>
+{% endblock %}

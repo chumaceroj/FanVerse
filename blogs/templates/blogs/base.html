@@ -124,6 +124,27 @@
             font-size: 18px;
             text-decoration: underline;
         }
+
+        .tab-button {
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            color: midnightblue;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab-button:hover {
+            background-color: aliceblue;
+        }
+
+        .active-tab {
+            border-bottom: 3px solid midnightblue;
+        }
     </style>
 </head>
 
@@ -135,7 +156,7 @@
         <div class="navigation-links">
             <!-- clickable links for Profile, Login, Create User, & Logout -->
             {% if user.is_authenticated %}
-            <a href="#">My Profile</a>
+            <a href="{% url 'profile' user.username %}">My Profile</a>
             <a href="{% url 'logout' %}">Logout</a>
             {% else %}
             <a href="{% url 'login' %}">Login</a>

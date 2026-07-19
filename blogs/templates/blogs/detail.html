@@ -7,7 +7,15 @@
 <div class="main-container">
     <!-- display the blogs title, author, full text, and when it was created -->
     <h2>{{ blog.title }}</h2>
-    <p>By: {{ blog.get_display_author }}</p>
+    {% if blog.is_orphaned %}
+    <p>By: orphan_account</p>
+    {% elif blog.is_anonymous %}
+    <p>By: Anonymous</p>
+    {% elif blog.author %}
+    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
+    {% else %}
+    <p>By: deleted_user</p>
+    {% endif %}
     <p>{{ blog.content }}</p>
     <p>Posted: {{ blog.created_at }}</p>
 
@@ -82,7 +90,15 @@
     {% for comment in blog.comments.all %}
     <div class="comment-card">
         <!-- include the authors name, the comment, and the date -->
-        <p><strong>{{ comment.get_display_author }}</strong> said:</p>
+        {% if comment.is_orphaned %}
+        <p><strong>orphan_account</strong> said:</p>
+        {% elif comment.is_anonymous %}
+        <p><strong>Anonymous</strong> said:</p>
+        {% elif comment.author %}
+        <p><strong><a href="{% url 'profile' comment.author.username %}" class="midnight-link" style="font-size: 16px;">{{ comment.author.username }}</a></strong> said:</p>
+        {% else %}
+        <p><strong>deleted_user</strong> said:</p>
+        {% endif %}
         <p>{{ comment.content }}</p>
         <p><small>{{ comment.created_at }}</small></p>
 
