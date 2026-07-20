@@ -1,0 +1,40 @@
+{% extends 'blogs/base.html' %}
+{% block content %}
+
+<div class="main-container">
+    <div class="blog-card">
+        <h2 style="margin-bottom: 16px;">Change Username</h2>
+        <p>Current username: <strong>{{ request.user.username }}</strong></p>
+
+        {% if error %}
+        <p class="warning-notice">{{ error }}</p>
+        {% endif %}
+
+        <form method="post" style="margin-top: 24px;">
+            {% csrf_token %}
+            <label>New Username:</label><br>
+            <input type="text" name="new_username" required
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 50%; margin-top: 4px;">
+
+            <div style="margin-top: 20px;">
+                <label style="font-weight: bold;">How should your old posts be displayed?</label>
+
+                <div style="margin-top: 12px;">
+                    <input type="radio" name="method" value="retroactive" id="retroactive" checked>
+                    <label for="retroactive">Update all my existing blogs and comments to my new username</label>
+                </div>
+
+                <div style="margin-top: 8px;">
+                    <input type="radio" name="method" value="preserve_old_username" id="preserve_old">
+                    <label for="preserve_old">Keep my old username on existing posts (old name becomes unclickable)</label>
+                </div>
+            </div>
+
+            <button type="submit" class="button-large" style="margin-top: 24px;"
+                onclick="return confirm('Are you sure you want to change your username?');">Change Username</button>
+        </form>
+
+        <a href="{% url 'profile' request.user.username %}" class="midnight-link" style="display: inline-block; margin-top: 16px; font-size: 14px;">Cancel -- take me back</a>
+    </div>
+</div>
+{% endblock %}

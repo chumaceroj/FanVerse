@@ -11,6 +11,7 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
     created_at = models.DateTimeField(auto_now_add=True) # Automatically saves the exact date & time of creation
     is_orphaned = models.BooleanField(default=False)  # Y/N for oprhaning 
     is_anonymous = models.BooleanField(default=False) # Y/N for anonymization
+    original_author_name = models.CharField(max_length=200, null=True, blank=True)
     
     def __str__(self):
         return f"{self.title} by {self.get_display_author()}"
@@ -52,6 +53,8 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
             return "Anonymous"
         if self.author is None: # only reaches if is_orphaned is False
             return "deleted_user"
+        if self.original_author_name:
+            return self.original_author_name
         return self.author.username
 
     
@@ -67,6 +70,7 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_orphaned = models.BooleanField(default=False)
     is_anonymous = models.BooleanField(default=False)
+    original_author_name = models.CharField(max_length=200, null=True, blank=True)
     
     def __str__(self):
         return f"Comment by {self.get_display_author()} at {self.created_at} on {self.blog.title}"
@@ -98,6 +102,8 @@ class Comment(models.Model):
             return "Anonymous"
         if self.author is None:
             return "deleted_user"
+        if self.original_author_name:
+            return self.original_author_name
         return self.author.username
     
 class Profile(models.Model):

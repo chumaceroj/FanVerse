@@ -180,6 +180,20 @@ def edit_profile(request, username):
         return redirect('profile', username=username)
     return render(request, 'blogs/edit_profile.html', {'user_profile': user_profile})
 
+def create_blog(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        blog = Blog.objects.create(
+            title=title,
+            content=content,
+            author=request.user
+        )
+        return redirect('blog_detail', blog_id=blog.id)
+    return render(request, 'blogs/create_blog.html')
+
 def login_user(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -211,3 +225,36 @@ def register_user(request):
         login(request, user)
         return redirect('index')
     return render(request, 'blogs/register.html')
+
+def delete_account(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    if request.method == 'POST':
+        user = request.user
+        logout(request)  # log them out first
+        user.delete()    # triggers CASCADE for profile, SET_NULL for blogs/comments
+        return redirect('index')
+    return render(request, 'blogs/delete_account.html')
+
+def change_username(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    if request.method == 'POST':
+        new_username = request.POST.get('new_username')
+        method = request.POST.get('method')  # preserves old username
+        
+        if User.objects.filter(username=new_username).exists(): # Check new username isn't taken
+            return render(request, 'blogs/change_username.html', {'error': 'Username already taken.'})
+        
+        if method == 'preserve_old_username': # Freeze current username on all existing blogs and comments
+            Blog.objects.filter(author=request.user).update(original_author_name=request.user.username)
+            Comment.objects.filter(author=request.user).update(original_author_name=request.user.username)
+        
+        # Change the username
+        request.user.username = new_username
+        request.user.save()
+        
+        return redirect('profile', username=new_username)
+    return render(request, 'blogs/change_username.html')

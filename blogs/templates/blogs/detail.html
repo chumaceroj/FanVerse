@@ -11,10 +11,12 @@
     <p>By: orphan_account</p>
     {% elif blog.is_anonymous %}
     <p>By: Anonymous</p>
-    {% elif blog.author %}
-    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
-    {% else %}
+    {% elif not blog.author %}
     <p>By: deleted_user</p>
+    {% elif blog.original_author_name %}
+    <p>By: {{ blog.original_author_name }}</p>
+    {% else %}
+    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
     {% endif %}
     <p>{{ blog.content }}</p>
     <p>Posted: {{ blog.created_at }}</p>
@@ -94,10 +96,12 @@
         <p><strong>orphan_account</strong> said:</p>
         {% elif comment.is_anonymous %}
         <p><strong>Anonymous</strong> said:</p>
-        {% elif comment.author %}
-        <p><strong><a href="{% url 'profile' comment.author.username %}" class="midnight-link" style="font-size: 16px;">{{ comment.author.username }}</a></strong> said:</p>
-        {% else %}
+        {% elif not comment.author %}
         <p><strong>deleted_user</strong> said:</p>
+        {% elif comment.original_author_name %}
+        <p><strong>{{ comment.original_author_name }}</strong> said:</p>
+        {% else %}
+        <p><strong><a href="{% url 'profile' comment.author.username %}" class="midnight-link" style="font-size: 16px;">{{ comment.author.username }}</a></strong> said:</p>
         {% endif %}
         <p>{{ comment.content }}</p>
         <p><small>{{ comment.created_at }}</small></p>

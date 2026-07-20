@@ -1,0 +1,21 @@
+{% extends 'blogs/base.html' %}
+{% block content %}
+
+<div class="main-container">
+    <div class="blog-card" style="border-color: crimson; border-width: 2px;">
+        <h2 style="color: crimson; margin-bottom: 16px;">Delete Account</h2>
+        <p>This action is <strong>permanent and irreversible</strong>.</p>
+        <p style="margin-top: 12px;">What will happen:</p>
+        <p style="margin-top: 8px;">Your profile, username, and all account data will be permanently deleted.</p>
+        <p>Your blogs and comments will remain on the site, displayed as <strong>"deleted_user"</strong>.</p>
+
+        <form method="post" style="margin-top: 24px;">
+            {% csrf_token %}
+            <button type="submit" class="button-large" style="border-color: crimson; color: crimson;"
+                onclick="return confirm('Are you absolutely sure? This cannot be undone.');">Delete My Account</button>
+        </form>
+
+        <a href="{% url 'profile' request.user.username %}" class="midnight-link" style="display: inline-block; margin-top: 16px; font-size: 14px;">Cancel — take me back</a>
+    </div>
+</div>
+{% endblock %}

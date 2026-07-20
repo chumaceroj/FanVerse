@@ -9,6 +9,9 @@
 <div class="main-container">
     <!-- main header ("All Blogs") -->
     <h1 style="color: midnightblue; margin-bottom: 24px;">All Blogs</h1>
+    {% if user.is_authenticated %}
+    <a href="{% url 'create_blog' %}" class="button-large" style="text-decoration: none; display: inline-block; margin-bottom: 24px;">Create Blog</a>
+    {% endif %}
 
     {% for blog in blogs %}
     <!-- create a blog card within the main container for each blog (sent from views.py) -->
@@ -24,10 +27,12 @@
         <p>By: orphan_account</p>
         {% elif blog.is_anonymous %}
         <p>By: Anonymous</p>
-        {% elif blog.author %}
-        <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
-        {% else %}
+        {% elif not blog.author %}
         <p>By: deleted_user</p>
+        {% elif blog.original_author_name %}
+        <p>By: {{ blog.original_author_name }}</p>
+        {% else %}
+        <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
         {% endif %}
         <!-- display preview of blog content (first 50 words) -->
         <p>{{ blog.content|truncatewords:50 }}</p>

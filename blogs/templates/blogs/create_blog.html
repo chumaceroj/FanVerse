@@ -1,0 +1,19 @@
+{% extends 'blogs/base.html' %}
+{% block content %}
+
+<div class="main-container">
+    <div class="blog-card">
+        <h2>Create a New Blog</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label>Title:</label><br>
+            <input type="text" name="title" required
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 100%; margin-top: 4px;"><br><br>
+            <label>Content:</label><br>
+            <textarea name="content" rows="10" required
+                style="width: 100%; border-radius: 8px; border: 1px solid midnightblue; padding: 8px; margin-top: 4px;"></textarea><br><br>
+            <button type="submit" class="button-large">Publish Blog</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
