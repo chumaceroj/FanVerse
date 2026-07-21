@@ -28,8 +28,10 @@
 <div class="blog-card" style="border-style: dashed; margin-top: 24px; margin-bottom: 32px;">
     <!-- separate section for all buttons -->
     <h3 style="margin: 0 0 8px 0; color: midnightblue; font-weight: bold; font-size: 1.35em;">Author Settings</h3>
-    <p style="margin-bottom: 20px; margin-top: 0;"><a href="{% url 'edit_blog' blog.id %}" class="midnight-link"
-            style="font-weight: normal; font-size: 1.05em; text-decoration: underline;">Edit Blog Post</a>
+    <p style="margin-bottom: 20px; margin-top: 0;">
+        <a href="{% url 'edit_blog' blog.id %}{% if request.GET.from %}?from={{ request.GET.from }}{% endif %}"
+            class="midnight-link" style="font-weight: normal; font-size: 1.05em; text-decoration: underline;">Edit
+            Post</a>
     </p>
     <!-- flexible container (needs to fit all items) -->
     <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -55,7 +57,7 @@
             <input type="text" name="new_owner_username" placeholder="Enter username to transfer to"
                 style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; height: 34px; box-sizing: border-box; vertical-align: middle;">
             <button type="submit" class="button" style="vertical-align: middle; height: 34px;"
-                onclick="return confirm('Warning: Transferring ownership is permanent. You will lose ownership of this blog. Do you want to continue?');">Transfer</button>
+                onclick="return confirm('Warning: Transferring ownership is permanent. You will lose ownership of this post. Do you want to continue?');">Transfer</button>
         </form>
 
         <!-- create a form to request orphaning-->

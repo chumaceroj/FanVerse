@@ -3,7 +3,7 @@
 
 <div class="main-container">
     <div class="blog-card">
-        <h2>Create a New Blog</h2>
+        <h2>Create a New Post</h2>
         <form method="post">
             {% csrf_token %}
             <label>Title:</label><br>
@@ -12,7 +12,7 @@
             <label>Content:</label><br>
             <textarea name="content" rows="10" required
                 style="width: 100%; border-radius: 8px; border: 1px solid midnightblue; padding: 8px; margin-top: 4px;"></textarea><br><br>
-            <button type="submit" class="button-large">Publish Blog</button>
+            <button type="submit" class="button-large">Publish Post</button>
         </form>
     </div>
 </div>

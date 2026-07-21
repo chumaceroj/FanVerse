@@ -9,7 +9,7 @@
 <h1 style="color: midnightblue; margin-bottom: 24px;">All Posts</h1>
 {% if user.is_authenticated %}
 <a href="{% url 'create_blog' %}" class="button-large"
-    style="text-decoration: none; display: inline-block; margin-bottom: 24px;">Create Blog</a>
+    style="text-decoration: none; display: inline-block; margin-bottom: 24px;">Create Post</a>
 {% endif %}
 
 {% for blog in blogs %}

@@ -7,20 +7,20 @@
     <p style="margin-top: 8px;">{{ user_profile.biography }}</p>
     {% endif %}
     {% if profile_user == request.user %}
-    <a href="{% url 'create_blog' %}" class="button"
-        style="margin-top: 12px; display: inline-block; text-decoration: none;">Create Blog</a>
-    <a href="{% url 'edit_profile' profile_user.username %}" class="button"
+    <a href="{% url 'create_blog' %}?from=profile" class="button"
+        style="margin-top: 12px; display: inline-block; text-decoration: none;">Create Post</a>
+    <a href="{% url 'edit_profile' profile_user.username %}?from=profile" class="button"
         style="margin-top: 12px; display: inline-block; text-decoration: none;">Edit Profile</a>
-    <a href="{% url 'change_username' %}" class="button"
+    <a href="{% url 'change_username' %}?from=profile" class="button"
         style="margin-top: 12px; display: inline-block; text-decoration: none;">Change Username</a>
-    <a href="{% url 'delete_account' %}" class="button"
+    <a href="{% url 'delete_account' %}?from=profile" class="button"
         style="margin-top: 12px; display: inline-block; text-decoration: none; border-color: crimson; color: crimson;">Delete
         Account</a>
     {% endif %}
 </div>
 
 <div style="display: flex; border-bottom: 2px solid midnightblue; margin-bottom: 24px;">
-    <button class="tab-button active-tab" onclick="showTab('blogs-tab', this)">Blogs</button>
+    <button class="tab-button active-tab" onclick="showTab('blogs-tab', this)">Posts</button>
     <button class="tab-button" onclick="showTab('comments-tab', this)">Comments</button>
 </div>
 
@@ -28,7 +28,7 @@
     {% for blog in blogs %}
     <div class="blog-card">
         <h2>
-            <a href="{% url 'blog_detail' blog.id %}" style="color: midnightblue; text-decoration: none;">
+            <a href="{% url 'blog_detail' blog.id %}?from=profile" style="color: midnightblue; text-decoration: none;">
                 {{ blog.title }}
             </a>
         </h2>
@@ -36,7 +36,7 @@
         <p><small>{{ blog.created_at }}</small></p>
     </div>
     {% empty %}
-    <p style="font-style: italic;">No blogs yet.</p>
+    <p style="font-style: italic;">No posts yet.</p>
     {% endfor %}
 </div>
 
@@ -44,7 +44,7 @@
     {% for comment in comments %}
     <div class="comment-card">
         <p>{{ comment.content }}</p>
-        <p><small>On: <a href="{% url 'blog_detail' comment.blog.id %}" class="midnight-link"
+        <p><small>On: <a href="{% url 'blog_detail' comment.blog.id %}?from=profile" class="midnight-link"
                     style="font-size: 14px;">{{ comment.blog.title }}</a></small></p>
         <p><small>{{ comment.created_at }}</small></p>
     </div>

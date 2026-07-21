@@ -166,10 +166,15 @@
     </div>
 
     <div class="main-container">
-        <!-- if the user is on any page other than the homepage, show this code -->
-        {% if request.resolver_match.url_name != 'index' %}
+        <!-- if the user request came from the "My Profile" page, show this code -->
+        {% if request.GET.from == 'profile' %}
         <div style="margin-bottom: 20px;">
-            <a href="{% url 'index' %}" class="midnight-link" style="font-size: 16px;">&larr; Back to all posts</a>
+            <a href="{% url 'profile' user.username %}" class="midnight-link" style="font-size: 16px;">&larr;
+                Back to My Profile</a>
+        </div>
+        {% elif request.resolver_match.url_name != 'index' %}
+        <div style="margin-bottom: 20px;">
+            <a href="{% url 'index' %}" class="midnight-link" style="font-size: 16px;">&larr; Back to All Posts</a>
         </div>
         {% endif %}
         <!-- container for blogs (<div> can't perform actions/logic) -->
