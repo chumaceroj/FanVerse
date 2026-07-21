@@ -5,47 +5,47 @@
 <!-- start the content block that goes into base.html -->
 {% block content %}
 
-<!-- start container that holds all blog cards -->
-<div class="main-container">
-    <!-- main header ("All Blogs") -->
-    <h1 style="color: midnightblue; margin-bottom: 24px;">All Blogs</h1>
-    {% if user.is_authenticated %}
-    <a href="{% url 'create_blog' %}" class="button-large" style="text-decoration: none; display: inline-block; margin-bottom: 24px;">Create Blog</a>
-    {% endif %}
+<!-- main header ("All Posts") -->
+<h1 style="color: midnightblue; margin-bottom: 24px;">All Posts</h1>
+{% if user.is_authenticated %}
+<a href="{% url 'create_blog' %}" class="button-large"
+    style="text-decoration: none; display: inline-block; margin-bottom: 24px;">Create Blog</a>
+{% endif %}
 
-    {% for blog in blogs %}
-    <!-- create a blog card within the main container for each blog (sent from views.py) -->
-    <div class="blog-card">
-        <!-- create a clickable link (for the corresponding blog detail page) using the blog ID; paste title as link into header -->
-        <h2>
-            <a href="{% url 'blog_detail' blog.id %}" style="color: midnightblue; text-decoration: none;">
-                {{ blog.title }}
-            </a>
-        </h2>
-        <!-- display author's name using function in models.py -->
-        {% if blog.is_orphaned %}
-        <p>By: orphan_account</p>
-        {% elif blog.is_anonymous %}
-        <p>By: Anonymous</p>
-        {% elif not blog.author %}
-        <p>By: deleted_user</p>
-        {% elif blog.original_author_name %}
-        <p>By: {{ blog.original_author_name }}</p>
-        {% else %}
-        <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a></p>
-        {% endif %}
-        <!-- display preview of blog content (first 50 words) -->
-        <p>{{ blog.content|truncatewords:50 }}</p>
-
-        <!-- create a "Read More" button that redirects to the blog's detail page -->
-        <a href="{% url 'blog_detail' blog.id %}" class="button"
-            style="text-decoration: none; display: inline-block; margin-top: 8px;">
-            Read More & View Comments
+{% for blog in blogs %}
+<!-- create a blog card within the main container for each blog (sent from views.py) -->
+<div class="blog-card">
+    <!-- create a clickable link (for the corresponding blog detail page) using the blog ID; paste title as link into header -->
+    <h2>
+        <a href="{% url 'blog_detail' blog.id %}" style="color: midnightblue; text-decoration: none;">
+            {{ blog.title }}
         </a>
-    </div>
-    <!-- displays "No blogs found" message if database is empty -->
-    {% empty %}
-    <p>No blogs found.</p>
-    {% endfor %}
+    </h2>
+    <!-- display author's name using function in models.py -->
+    {% if blog.is_orphaned %}
+    <p>By: orphan_account</p>
+    {% elif blog.is_anonymous %}
+    <p>By: Anonymous</p>
+    {% elif not blog.author %}
+    <p>By: deleted_user</p>
+    {% elif blog.original_author_name %}
+    <p>By: {{ blog.original_author_name }}</p>
+    {% else %}
+    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">
+            {{blog.author.username }}</a></p>
+    {% endif %}
+    <!-- display preview of blog content (first 50 words) -->
+    <p>{{ blog.content|truncatewords:50 }}</p>
+
+    <!-- create a "Read More" button that redirects to the blog's detail page -->
+    <a href="{% url 'blog_detail' blog.id %}" class="button"
+        style="text-decoration: none; display: inline-block; margin-top: 8px;">
+        Read More & View Comments
+    </a>
 </div>
+<!-- displays "No blogs found" message if database is empty -->
+{% empty %}
+<p>No blogs found.</p>
+{% endfor %}
+
 {% endblock %}

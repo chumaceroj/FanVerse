@@ -1,60 +1,64 @@
 {% extends 'blogs/base.html' %}
 {% block content %}
 
-<div class="main-container">
-    <div style="text-align: center; padding: 32px 0;">
-        <h1 style="margin: 0;">{{ profile_user.username }}</h1>
-        {% if user_profile and user_profile.biography %}
-        <p style="margin-top: 8px;">{{ user_profile.biography }}</p>
-        {% endif %}
-        {% if profile_user == request.user %}
-        <a href="{% url 'create_blog' %}" class="button" style="margin-top: 12px; display: inline-block; text-decoration: none;">Create Blog</a>
-        <a href="{% url 'edit_profile' profile_user.username %}" class="button" style="margin-top: 12px; display: inline-block; text-decoration: none;">Edit Profile</a>
-        <a href="{% url 'change_username' %}" class="button" style="margin-top: 12px; display: inline-block; text-decoration: none;">Change Username</a>
-        <a href="{% url 'delete_account' %}" class="button" style="margin-top: 12px; display: inline-block; text-decoration: none; border-color: crimson; color: crimson;">Delete Account</a>
-        {% endif %}
-    </div>
+<div style="text-align: center; padding: 32px 0;">
+    <h1 style="margin: 0;">{{ profile_user.username }}</h1>
+    {% if user_profile and user_profile.biography %}
+    <p style="margin-top: 8px;">{{ user_profile.biography }}</p>
+    {% endif %}
+    {% if profile_user == request.user %}
+    <a href="{% url 'create_blog' %}" class="button"
+        style="margin-top: 12px; display: inline-block; text-decoration: none;">Create Blog</a>
+    <a href="{% url 'edit_profile' profile_user.username %}" class="button"
+        style="margin-top: 12px; display: inline-block; text-decoration: none;">Edit Profile</a>
+    <a href="{% url 'change_username' %}" class="button"
+        style="margin-top: 12px; display: inline-block; text-decoration: none;">Change Username</a>
+    <a href="{% url 'delete_account' %}" class="button"
+        style="margin-top: 12px; display: inline-block; text-decoration: none; border-color: crimson; color: crimson;">Delete
+        Account</a>
+    {% endif %}
+</div>
 
-    <div style="display: flex; border-bottom: 2px solid midnightblue; margin-bottom: 24px;">
-        <button class="tab-button active-tab" onclick="showTab('blogs-tab', this)">Blogs</button>
-        <button class="tab-button" onclick="showTab('comments-tab', this)">Comments</button>
-    </div>
+<div style="display: flex; border-bottom: 2px solid midnightblue; margin-bottom: 24px;">
+    <button class="tab-button active-tab" onclick="showTab('blogs-tab', this)">Blogs</button>
+    <button class="tab-button" onclick="showTab('comments-tab', this)">Comments</button>
+</div>
 
-    <div id="blogs-tab" class="tab-content" style="display: block;">
-        {% for blog in blogs %}
-        <div class="blog-card">
-            <h2>
-                <a href="{% url 'blog_detail' blog.id %}" style="color: midnightblue; text-decoration: none;">
-                    {{ blog.title }}
-                </a>
-            </h2>
-            <p>{{ blog.content|truncatewords:50 }}</p>
-            <p><small>{{ blog.created_at }}</small></p>
-        </div>
-        {% empty %}
-        <p style="font-style: italic;">No blogs yet.</p>
-        {% endfor %}
+<div id="blogs-tab" class="tab-content" style="display: block;">
+    {% for blog in blogs %}
+    <div class="blog-card">
+        <h2>
+            <a href="{% url 'blog_detail' blog.id %}" style="color: midnightblue; text-decoration: none;">
+                {{ blog.title }}
+            </a>
+        </h2>
+        <p>{{ blog.content|truncatewords:50 }}</p>
+        <p><small>{{ blog.created_at }}</small></p>
     </div>
+    {% empty %}
+    <p style="font-style: italic;">No blogs yet.</p>
+    {% endfor %}
+</div>
 
-    <div id="comments-tab" class="tab-content" style="display: none;">
-        {% for comment in comments %}
-        <div class="comment-card">
-            <p>{{ comment.content }}</p>
-            <p><small>On: <a href="{% url 'blog_detail' comment.blog.id %}" class="midnight-link" style="font-size: 14px;">{{ comment.blog.title }}</a></small></p>
-            <p><small>{{ comment.created_at }}</small></p>
-        </div>
-        {% empty %}
-        <p style="font-style: italic;">No comments yet.</p>
-        {% endfor %}
+<div id="comments-tab" class="tab-content" style="display: none;">
+    {% for comment in comments %}
+    <div class="comment-card">
+        <p>{{ comment.content }}</p>
+        <p><small>On: <a href="{% url 'blog_detail' comment.blog.id %}" class="midnight-link"
+                    style="font-size: 14px;">{{ comment.blog.title }}</a></small></p>
+        <p><small>{{ comment.created_at }}</small></p>
     </div>
+    {% empty %}
+    <p style="font-style: italic;">No comments yet.</p>
+    {% endfor %}
 </div>
 
 <script>
-function showTab(tabId, button) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active-tab'));
-    document.getElementById(tabId).style.display = 'block';
-    button.classList.add('active-tab');
-}
+    function showTab(tabId, button) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active-tab'));
+        document.getElementById(tabId).style.display = 'block';
+        button.classList.add('active-tab');
+    }
 </script>
 {% endblock %}

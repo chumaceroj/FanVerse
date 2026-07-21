@@ -164,9 +164,18 @@
             {% endif %}
         </div>
     </div>
-    <!-- container for blogs (<div> can't perform actions/logic) -->
-    {% block content %}
-    {% endblock %}
+
+    <div class="main-container">
+        <!-- if the user is on any page other than the homepage, show this code -->
+        {% if request.resolver_match.url_name != 'index' %}
+        <div style="margin-bottom: 20px;">
+            <a href="{% url 'index' %}" class="midnight-link" style="font-size: 16px;">&larr; Back to all posts</a>
+        </div>
+        {% endif %}
+        <!-- container for blogs (<div> can't perform actions/logic) -->
+        {% block content %}
+        {% endblock %}
+    </div>
 
 </body>
 
