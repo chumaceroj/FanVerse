@@ -238,7 +238,7 @@ def delete_account(request):
     if request.method == 'POST':
         user = request.user
         logout(request)  # log them out first
-        user.delete()    # triggers CASCADE for profile, SET_NULL for blogs/comments
+        user.delete()    # triggers Cascade for profile, SET_NULL for blogs/comments
         return redirect('index')
     return render(request, 'blogs/delete_account.html')
 
