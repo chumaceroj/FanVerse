@@ -14,14 +14,30 @@
     {% elif not blog.author %}
     <p>By: deleted_user</p>
     {% elif blog.original_author_name %}
-    <p>By: {{ blog.original_author_name }}</p>
+    <p>By: {{ blog.original_author_name }}{% for collab in blog.collaborations.all %}{% if collab.role == 'collaborator' %}, <a href="{% url 'profile' collab.user.username %}" class="midnight-link" style="font-size: 16px;">{{ collab.user.username }}</a>{% endif %}{% endfor %}</p>
     {% else %}
-    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">
-            {{ blog.author.username }}</a></p>
+    <p>By: <a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.author.username }}</a>{% for collab in blog.collaborations.all %}{% if collab.role == 'collaborator' %}, <a href="{% url 'profile' collab.user.username %}" class="midnight-link" style="font-size: 16px;">{{ collab.user.username }}</a>{% endif %}{% endfor %}</p>
     {% endif %}
     <p style="margin-top: 16px; font-size: 1.1em;">{{ blog.content }}</p>
     <p style="margin-top: 16px; color: grey;"><small>Posted: {{ blog.created_at }}</small></p>
 </div>
+
+<!-- if the logged in user is a collaborator (not owner), show collaborator options -->
+{% for collab in blog.collaborations.all %}
+{% if collab.user == request.user and collab.role == 'collaborator' %}
+<div class="blog-card" style="border-style: dashed; margin-bottom: 32px;">
+    <p style="margin: 0 0 8px 0;">
+        <a href="{% url 'edit_blog' blog.id %}" class="midnight-link"
+            style="font-weight: normal; font-size: 1.05em; text-decoration: underline;">Edit Blog Post</a>
+    </p>
+    <form method="post" action="{% url 'leave_collaboration' blog.id %}" style="margin: 8px 0 0 0;">
+        {% csrf_token %}
+        <button type="submit" class="button" style="border-color: crimson; color: crimson;"
+            onclick="return confirm('Are you sure you want to leave this collaboration?');">Leave Collaboration</button>
+    </form>
+</div>
+{% endif %}
+{% endfor %}
 
 <h3 style="color: midnightblue; margin-top: 32px;">Comments</h3>
 

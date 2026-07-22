@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Blog, Comment, Profile
+from .models import Blog, Comment, Profile, Collaboration, Invitation
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 
@@ -151,6 +151,26 @@ def profile(request, username):
         is_anonymous=False
     ).order_by('-created_at')
     
+    # Get blogs where this user is a collaborator
+    collab_blog_ids = Collaboration.objects.filter(
+        user=profile_user,
+        role='collaborator'
+    ).values_list('blog_id', flat=True)
+    
+    collab_blogs = Blog.objects.filter(
+        id__in=collab_blog_ids,
+        is_orphaned=False,
+        is_anonymous=False
+    ).order_by('-created_at')
+    
+    # Combine owned and collab blogs, sorted by date
+    from itertools import chain
+    all_blogs = sorted(
+        chain(blogs, collab_blogs),
+        key=lambda b: b.created_at,
+        reverse=True
+    )
+    
     comments = Comment.objects.filter( # Get their comments, excluding orphaned and anonymized
         author=profile_user,
         is_orphaned=False,
@@ -160,7 +180,7 @@ def profile(request, username):
     return render(request, 'blogs/profile.html', { # Send everything to the template
         'profile_user': profile_user,
         'user_profile': user_profile,
-        'blogs': blogs,
+        'blogs': all_blogs,
         'comments': comments,
     })
 
@@ -191,8 +211,32 @@ def create_blog(request):
             content=content,
             author=request.user
         )
+        Collaboration.objects.create(
+            blog=blog,
+            user=request.user,
+            role='owner'
+        )
+        # send invitations to collaborators if any usernames were entered
+        collaborator_usernames = request.POST.get('collaborator_usernames', '')
+        if collaborator_usernames.strip():
+            for username in collaborator_usernames.split(','):
+                username = username.strip()
+                if not username:
+                    continue
+                try:
+                    invited_user = User.objects.get(username=username)
+                except User.DoesNotExist:
+                    continue
+                if invited_user == request.user:
+                    continue
+                Invitation.objects.create(
+                    blog=blog,
+                    invited_by=request.user,
+                    invited_user=invited_user,
+                )
         return redirect('blog_detail', blog_id=blog.id)
     return render(request, 'blogs/create_blog.html')
+
 
 def login_user(request):
     if request.method == 'POST':
@@ -266,7 +310,145 @@ def change_username(request):
 
 def post_settings(request, blog_id):
     blog = get_object_or_404(Blog, id=blog_id)
-    # verify user is author and blog isn't orphaned before rendering settings
-    if not blog.can_edit(request.user):
+    if not blog.is_owner(request.user):
         return redirect('blog_detail', blog_id=blog_id)
-    return render(request, 'blogs/post_settings.html', {'blog': blog})
+    
+    collaborators = Collaboration.objects.filter(blog=blog).exclude(role='owner')
+    pending_invites = Invitation.objects.filter(blog=blog, status='pending')
+    
+    return render(request, 'blogs/post_settings.html', {
+        'blog': blog,
+        'collaborators': collaborators,
+        'pending_invites': pending_invites,
+    })
+
+def invite_collaborator(request, blog_id):
+    if request.method == 'POST':
+        blog = get_object_or_404(Blog, id=blog_id)
+        if not blog.is_owner(request.user):
+            return redirect('blog_detail', blog_id=blog_id)
+        
+        username = request.POST.get('collaborator_username')
+        try:
+            invited_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return redirect('post_settings', blog_id=blog_id)
+        
+        if invited_user == request.user:
+            return redirect('post_settings', blog_id=blog_id)
+        if Collaboration.objects.filter(blog=blog, user=invited_user).exists():
+            return redirect('post_settings', blog_id=blog_id)
+        existing_invite = Invitation.objects.filter(blog=blog, invited_user=invited_user).first()
+        if existing_invite:
+            if existing_invite.status == 'pending':
+                return redirect('post_settings', blog_id=blog_id)
+            # if previously declined or accepted, reset to pending
+            existing_invite.status = 'pending'
+            existing_invite.save()
+            return redirect('post_settings', blog_id=blog_id)
+        
+        Invitation.objects.create(
+            blog=blog,
+            invited_by=request.user,
+            invited_user=invited_user,
+        )
+        return redirect('post_settings', blog_id=blog_id)
+    return redirect('index')
+
+
+def accept_invitation(request, invitation_id):
+    if request.method == 'POST':
+        invitation = get_object_or_404(Invitation, id=invitation_id)
+        if invitation.invited_user != request.user:
+            return redirect('notifications')
+        
+        invitation.status = 'accepted'
+        invitation.save()
+        
+        Collaboration.objects.create(
+            blog=invitation.blog,
+            user=request.user,
+            role='collaborator'
+        )
+        return redirect('notifications')
+    return redirect('notifications')
+
+
+def decline_invitation(request, invitation_id):
+    if request.method == 'POST':
+        invitation = get_object_or_404(Invitation, id=invitation_id)
+        if invitation.invited_user != request.user:
+            return redirect('notifications')
+        
+        invitation.status = 'declined'
+        invitation.save()
+        return redirect('notifications')
+    return redirect('notifications')
+
+
+def remove_collaborator(request, blog_id, collaboration_id):
+    if request.method == 'POST':
+        blog = get_object_or_404(Blog, id=blog_id)
+        if not blog.is_owner(request.user):
+            return redirect('post_settings', blog_id=blog_id)
+        
+        collaboration = get_object_or_404(Collaboration, id=collaboration_id, blog=blog)
+        if collaboration.role != 'owner':
+            collaboration.delete()
+        return redirect('post_settings', blog_id=blog_id)
+    return redirect('index')
+
+
+def leave_collaboration(request, blog_id):
+    if request.method == 'POST':
+        blog = get_object_or_404(Blog, id=blog_id)
+        collaboration = Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator').first()
+        if collaboration:
+            collaboration.delete()
+        return redirect('blog_detail', blog_id=blog_id)
+    return redirect('index')
+
+
+def reassign_owner(request, blog_id):
+    if request.method == 'POST':
+        blog = get_object_or_404(Blog, id=blog_id)
+        if not blog.is_owner(request.user):
+            return redirect('post_settings', blog_id=blog_id)
+        
+        new_owner_collab_id = request.POST.get('new_owner_id')
+        try:
+            new_owner_collab = Collaboration.objects.get(
+                id=new_owner_collab_id, blog=blog, role='collaborator'
+            )
+        except Collaboration.DoesNotExist:
+            return redirect('post_settings', blog_id=blog_id)
+        
+        new_owner = new_owner_collab.user
+        
+        new_owner_collab.role = 'owner'
+        new_owner_collab.save()
+        
+        old_owner_collab, created = Collaboration.objects.get_or_create(
+            blog=blog, user=request.user,
+            defaults={'role': 'owner'}
+        )
+        old_owner_collab.role = 'collaborator'
+        old_owner_collab.save()
+        
+        blog.transfer(new_owner)
+        return redirect('blog_detail', blog_id=blog_id)
+    return redirect('index')
+
+
+def notifications(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    pending_invitations = Invitation.objects.filter(
+        invited_user=request.user,
+        status='pending'
+    ).order_by('-created_at')
+    
+    return render(request, 'blogs/notifications.html', {
+        'pending_invitations': pending_invitations,
+    })

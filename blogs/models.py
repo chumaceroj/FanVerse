@@ -23,12 +23,20 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
         self.save() # saves the changes to the database, only needed when changing the database
 
     def can_edit(self, user):
-        """Checks if the blog can still be edited (cannot be orphaned and must be an author)"""
+        """Checks if the blog can still be edited (cannot be orphaned and must be author or collaborator)"""
         if self.is_orphaned:
             return False
-        if self.author != user:
+        if self.author == user:
+            return True
+        if self.collaborations.filter(user=user, role='collaborator').exists():
+            return True
+        return False
+
+    def is_owner(self, user):
+        """Checks if the user is the owner (not just a collaborator)"""
+        if self.is_orphaned:
             return False
-        return True
+        return self.author == user
     
     def anonymize(self):
         """Hide author from public but keep the link in the database"""
@@ -108,4 +116,37 @@ class Comment(models.Model):
     
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    biography = models.CharField(max_length=150)                      
+    biography = models.CharField(max_length=150)
+
+
+class Collaboration(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('collaborator', 'Collaborator'),
+    ]
+    blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='collaborations')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collaborations')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blog', 'user')  # prevents duplicate entries
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role} on {self.blog.title}"
+
+
+class Invitation(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    ]
+    blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='invitations')
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    invited_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_invitations')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blog', 'invited_user')  # one invite per user per blog

@@ -29,4 +29,11 @@ urlpatterns = [
     path('delete-account/', views.delete_account, name='delete_account'),
     path('change-username/', views.change_username, name='change_username'),
     path('<int:blog_id>/settings/', views.post_settings, name='post_settings'),
+    path('<int:blog_id>/invite/', views.invite_collaborator, name='invite_collaborator'),
+    path('<int:blog_id>/remove-collaborator/<int:collaboration_id>/', views.remove_collaborator, name='remove_collaborator'),
+    path('<int:blog_id>/leave/', views.leave_collaboration, name='leave_collaboration'),
+    path('<int:blog_id>/reassign/', views.reassign_owner, name='reassign_owner'),
+    path('invitation/<int:invitation_id>/accept/', views.accept_invitation, name='accept_invitation'),
+    path('invitation/<int:invitation_id>/decline/', views.decline_invitation, name='decline_invitation'),
+    path('notifications/', views.notifications, name='notifications'),
 ]

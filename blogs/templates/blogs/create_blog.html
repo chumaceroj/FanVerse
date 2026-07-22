@@ -1,6 +1,5 @@
 {% extends 'blogs/base.html' %}
 {% block content %}
-
 <div class="main-container">
     <div class="blog-card">
         <h2>Create a New Post</h2>
@@ -12,6 +11,11 @@
             <label>Content:</label><br>
             <textarea name="content" rows="10" required
                 style="width: 100%; border-radius: 8px; border: 1px solid midnightblue; padding: 8px; margin-top: 4px;"></textarea><br><br>
+            <label>Invite Collaborators (optional):</label><br>
+            <p style="margin: 4px 0 8px 0; color: grey; font-size: 14px;">Enter usernames separated by commas (e.g. alice, bob)</p>
+            <input type="text" name="collaborator_usernames"
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 100%; margin-bottom: 16px;">
+            <br>
             <button type="submit" class="button-large">Publish Post</button>
         </form>
     </div>

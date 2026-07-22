@@ -1,10 +1,7 @@
 {% extends 'blogs/base.html' %}
 {% block content %}
-
 <h1 style="color: midnightblue; margin-bottom: 24px;">Post Settings</h1>
-
 <div style="display: flex; flex-direction: column; gap: 24px;">
-
     <div class="blog-card">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Go Anonymous</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
@@ -25,6 +22,44 @@
     </div>
 
     <div class="blog-card">
+        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Invite Collaborator</h3>
+        <p style="margin: 0 0 16px 0; color: midnightblue;">
+            Invite a user to collaborate on this post. They will receive a notification to accept or decline.
+        </p>
+        <form method="post" action="{% url 'invite_collaborator' blog.id %}">
+            {% csrf_token %}
+            <input type="text" name="collaborator_username" placeholder="Enter username to invite"
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 50%; max-width: 300px; margin-bottom: 12px; display: block;">
+            <button type="submit" class="button">Send Invite</button>
+        </form>
+
+        {% if pending_invites %}
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed midnightblue;">
+            <p style="font-weight: bold; margin-bottom: 8px;">Pending Invites:</p>
+            {% for invite in pending_invites %}
+            <p style="margin: 4px 0;">{{ invite.invited_user.username }} — pending</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if collaborators %}
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed midnightblue;">
+            <p style="font-weight: bold; margin-bottom: 8px;">Current Collaborators:</p>
+            {% for collab in collaborators %}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin: 8px 0;">
+                <span>{{ collab.user.username }}</span>
+                <form method="post" action="{% url 'remove_collaborator' blog.id collab.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="button" style="border-color: crimson; color: crimson;"
+                        onclick="return confirm('Remove {{ collab.user.username }} as a collaborator?');">Remove</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="blog-card">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Transfer Post</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
             Transfer post to another user. This action transfers ownership to another user, thereby removing editing
@@ -40,6 +75,27 @@
         </form>
     </div>
 
+    {% if collaborators %}
+    <div class="blog-card">
+        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Reassign Owner</h3>
+        <p style="margin: 0 0 16px 0; color: midnightblue;">
+            Promote a collaborator to owner. You will be demoted to collaborator and lose owner privileges.
+        </p>
+        <form method="post" action="{% url 'reassign_owner' blog.id %}">
+            {% csrf_token %}
+            <select name="new_owner_id"
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 50%; max-width: 300px; margin-bottom: 12px; display: block;">
+                {% for collab in collaborators %}
+                <option value="{{ collab.id }}">{{ collab.user.username }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="button"
+                onclick="return confirm('Warning: You will lose owner privileges and become a collaborator. Do you want to continue?');">Reassign
+                Ownership</button>
+        </form>
+    </div>
+    {% endif %}
+
     <div class="blog-card" style="border-color: crimson; border-width: 2px;">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: crimson;">Orphan This Post</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
@@ -53,7 +109,5 @@
                 Post</button>
         </form>
     </div>
-
 </div>
-
 {% endblock %}
