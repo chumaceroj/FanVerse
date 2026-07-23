@@ -13,27 +13,8 @@
     </div>
 {% endif %}
 
-<div style="display: flex; flex-direction: column; gap: 24px;">
-    <div class="blog-card">
-        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Go Anonymous</h3>
-        <p style="margin: 0 0 16px 0; color: midnightblue;">
-            Removes username from post. This action retains editing privileges and is reversible.
-        </p>
-        <form method="post" action="{% url 'anonymize_blog' blog.id %}">
-            {% csrf_token %}
-            {% if blog.is_anonymous %}
-            <button type="submit" class="button"
-                onclick="return confirm('Warning: Going anonymous hides your profile name from viewers. Do you want to continue?');">Reveal
-                Identity</button>
-            {% else %}
-            <button type="submit" class="button"
-                onclick="return confirm('Warning: Going anonymous hides your profile name from public viewers. Do you want to continue?');">Go
-                Anonymous</button>
-            {% endif %}
-        </form>
-    </div>
-
-    <div class="blog-card">
+<!-- invite collaborator -->
+<div class="blog-card">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Invite Collaborator</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
             Invite a user to collaborate on this post. They will receive a notification to accept or decline.
@@ -71,23 +52,8 @@
         {% endif %}
     </div>
 
-    <div class="blog-card">
-        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Transfer Post</h3>
-        <p style="margin: 0 0 16px 0; color: midnightblue;">
-            Transfer post to another user. This action transfers ownership to another user, thereby removing editing
-            privileges for the previous owner. This action is irreversible.
-        </p>
-        <form method="post" action="{% url 'transfer_blog' blog.id %}">
-            {% csrf_token %}
-            <input type="text" name="new_owner_username" placeholder="Enter username to transfer to"
-                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 50%; max-width: 300px; margin-bottom: 12px; display: block;">
-            <button type="submit" class="button"
-                onclick="return confirm('Warning: Transferring ownership is permanent. You will lose ownership of this post. Do you want to continue?');">Transfer
-                Ownership</button>
-        </form>
-    </div>
-
-    {% if collaborators %}
+<!-- reassign Owner -->
+{% if collaborators %}
     <div class="blog-card">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Reassign Owner</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
@@ -107,8 +73,26 @@
         </form>
     </div>
     {% endif %}
+    
+<!-- transfer post -->
+<div class="blog-card">
+        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Transfer Post</h3>
+        <p style="margin: 0 0 16px 0; color: midnightblue;">
+            Transfer post to another user. This action transfers ownership to another user, thereby removing editing
+            privileges for the previous owner. This action is irreversible.
+        </p>
+        <form method="post" action="{% url 'transfer_blog' blog.id %}">
+            {% csrf_token %}
+            <input type="text" name="new_owner_username" placeholder="Enter username to transfer to"
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 50%; max-width: 300px; margin-bottom: 12px; display: block;">
+            <button type="submit" class="button"
+                onclick="return confirm('Warning: Transferring ownership is permanent. You will lose ownership of this post. Do you want to continue?');">Transfer
+                Ownership</button>
+        </form>
+    </div>
 
-    <div class="blog-card">
+<!-- admin-mediated -->
+ <div class="blog-card">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Admin Mediated Transfer</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
             Request a transfer of ownership to another user mediated by a site administrator. Unlike direct transfer, ownership is not updated immediately. An administrator must review and approve your request before ownership is transferred.
@@ -122,6 +106,28 @@
         </form>
     </div>
 
+<!-- go anonymous-->
+<div style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="blog-card">
+        <h3 style="margin-top: 0; margin-bottom: 8px; color: midnightblue;">Go Anonymous</h3>
+        <p style="margin: 0 0 16px 0; color: midnightblue;">
+            Removes username from post. This action retains editing privileges and is reversible.
+        </p>
+        <form method="post" action="{% url 'anonymize_blog' blog.id %}">
+            {% csrf_token %}
+            {% if blog.is_anonymous %}
+            <button type="submit" class="button"
+                onclick="return confirm('Warning: Going anonymous hides your profile name from viewers. Do you want to continue?');">Reveal
+                Identity</button>
+            {% else %}
+            <button type="submit" class="button"
+                onclick="return confirm('Warning: Going anonymous hides your profile name from public viewers. Do you want to continue?');">Go
+                Anonymous</button>
+            {% endif %}
+        </form>
+    </div>
+
+<!-- orphan -->
     <div class="blog-card" style="border-color: crimson; border-width: 2px;">
         <h3 style="margin-top: 0; margin-bottom: 8px; color: crimson;">Orphan This Post</h3>
         <p style="margin: 0 0 16px 0; color: midnightblue;">
