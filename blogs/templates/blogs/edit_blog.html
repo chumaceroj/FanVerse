@@ -3,23 +3,31 @@
 {% extends 'blogs/base.html' %}
 {% block content %}
 
-<h2>Edit: {{ blog.title }}</h2>
-<!-- create a form to send the edited data to the same url -->
-<form method="post">
-    {% csrf_token %}
-    <label>Title:</label>
-    <br>
-    <!-- text input box that displays the blog's current title -->
-    <input type="text" name="title" value="{{ blog.title }}"><br><br>
-    <label>Content:</label>
-    <br>
-    <!-- text input box that display's the blog's current content -->
-    <textarea name="content" rows="10" cols="50">{{ blog.content }}</textarea><br><br>
-    <!-- "Save changes" button to send modifications to views.py (saves to database) -->
-    <button type="submit">Save changes</button>
-</form>
+<div class="main-container">
+    <div class="blog-card">
+        <h2 style="margin-bottom: 24px;">Edit: {{ blog.title }}</h2>
+        
+        <!-- create a form to send the edited data to the same url -->
+        <form method="post">
+            {% csrf_token %}
+            
+            <label>Title:</label><br>
+            <!-- text input box that displays the blog's current title -->
+            <input type="text" name="title" value="{{ blog.title }}" required
+                style="padding: 8px; border-radius: 4px; border: 1px solid midnightblue; width: 100%; margin-top: 4px;"><br><br>
+            
+            <label>Content:</label><br>
+            <!-- text input box that display's the blog's current content -->
+            <textarea name="content" rows="10" required
+                style="width: 100%; border-radius: 8px; border: 1px solid midnightblue; padding: 8px; margin-top: 4px;">{{ blog.content }}</textarea><br><br>
+            
+            <!-- "Save changes" button to send modifications to views.py (saves to database) -->
+            <button type="submit" class="button-large">Save Changes</button>
+            
+            <!-- create a "Cancel" button that returns to the blog's detail page (without saving changes) -->
+            <a href="{% url 'blog_detail' blog.id %}" class="button-large" style="text-decoration: none; display: inline-block;">Cancel</a>
+        </form>
+    </div>
+</div>
 
-<br>
-<!-- create a "Cancel" button that returns to the blog's detail page (without saving changes) -->
-<a href="{% url 'blog_detail' blog.id %}">Cancel</a>
 {% endblock %}

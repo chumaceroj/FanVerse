@@ -174,6 +174,8 @@ class TransferRequest(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     # saves the time when the request was created
     created_at = models.DateTimeField(auto_now_add=True)
+    # tracks if requester has been notified/if they cleared the notification
+    is_notified = models.BooleanField(default=False)
 
     def __str__(self):
         # Return a human-readable summary string

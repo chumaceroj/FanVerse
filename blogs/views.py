@@ -446,20 +446,36 @@ def reassign_owner(request, blog_id):
         return redirect('blog_detail', blog_id=blog_id)
     return redirect('index')
 
-
+@login_required
 def notifications(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
-    
+    # all pending collab invites
     pending_invitations = Invitation.objects.filter(
         invited_user=request.user,
         status='pending'
     ).order_by('-created_at')
+
+    # all approved/denied transfer requests that haven't been dismissed
+    transfer_notifications = TransferRequest.objects.filter(
+        requester=request.user,
+        status__in=['APPROVED','DENIED'],
+        is_notified=False
+    ).order_by('-created_at')
     
     return render(request, 'blogs/notifications.html', {
         'pending_invitations': pending_invitations,
+        'transfer_notifications' : transfer_notifications,
     })
 
+# clear/dismiss transfer notifications once viewed
+@login_required
+def clear_transfer_notification(request, transfer_id):
+    if request.method == 'POST':
+        # get transfer request matching transfer_id & requester
+        transfer = get_object_or_404(TransferRequest, id=transfer_id, requester=request.user)
+        # mark as notified (so it disappears from notif page)
+        transfer.is_notified = True
+        transfer.save()
+    return redirect('notifications')
 
 # only logged-in users can access this view
 @login_required
