@@ -117,10 +117,10 @@ class Comment(models.Model):
     def get_display_author(self):
         if self.is_orphaned:
             return "orphan_account"
-        if self.is_anonymous:
-            return "Anonymous"
         if self.author is None:
             return "deleted_user"
+        if self.is_anonymous:
+            return "Anonymous"
         if self.original_author_name:
             return self.original_author_name
         return self.author.username
