@@ -32,6 +32,7 @@ Orphaning: A process where the link between an account and its content is perman
 Deletion: A process where a user account is closed while preserving its published content on the platform. The user account is permanently removed and all past posts and comments remain visible under the "deleted_account" username. This actio is irreversible.
 
 Username Change: A process where a user updates the username attached to their account. The site supports two types of username changes for handling past content:
+
 1. Preserve Old Username: Past content retains the original username without an active profile link. All future posts are attached to a new             profile link under the new username.
 2. All past content and profile links are automatically updated to display the new username. All future posts are attached to the new profile link      under the new username.
 
