@@ -6,7 +6,7 @@
  
 ## Description
  
-FanVerse is a Django blogging web application designed around flexible post ownership and user privacy. The platform allows users to invite co-authors, hand off full ownership to another user, or step down to a collaborator role. Authors can post anonymously while retaining editing rights, or permanately orphan a post to unlink their profile while preserving the post's contents for the community. The app also includes a notification center for collaboration invites and transfer requests, threaded comments, and account settings for profile customization and username changes.
+FanVerse is a Django blogging web application designed around flexible post ownership and user privacy. The platform allows users to invite co-authors, hand off full ownership to another user, or step down to a collaborator role. Authors can post anonymously while retaining editing rights, or permanently orphan a post to unlink their profile while preserving the post's contents for the community. The app also includes a notification center for collaboration invites and transfer requests, threaded comments, and account settings for profile customization and username changes.
 <!-- Describe what FanVerse is and what it does -->
  
 ## Motivation
@@ -15,11 +15,11 @@ Many online platforms assume content ownership is straightforward, where one use
 
 This application was built as part of a research project investigating existing unlinking mechanisms. These mechanisms allow users to detach their personal identity (username, email, or account) from content they previously posted online. As part of our research, we examined top global websites to study how different platforms support content unlinking, account deletion, anonymization, and ownership transfers.
 
-We found that very few websites provide mechanisms to protect user privacy without erasing previously published content. We built FanVerse as a working prototype to bring these unlinking mechanisms together on a single platform. This allowed us to test how anoynmization, post orphaning, collaborator role reassignment, ownership transfers operate inside a single Django application.
+We found that very few websites provide mechanisms to protect user privacy without erasing previously published content. We built FanVerse as a working prototype to bring these unlinking mechanisms together on a single platform. This allowed us to test how anonymization, post orphaning, collaborator role reassignment, ownership transfers operate inside a single Django application.
 
-To better understand each unlinking mechanim we've implemented, definitions are included below.
+To better understand each unlinking mechanism we've implemented, definitions are included below.
 
-Direct Ownership Transfer: A process where primary ownership of a post is moved from the current owner to a specified user. The new user immediately gains full ownership of the post, while the original author loses ownership privleges.
+Direct Ownership Transfer: A process where primary ownership of a post is moved from the current owner to a specified user. The new user immediately gains full ownership of the post, while the original author loses ownership privileges.
 
 Admin-Mediated Ownership Transfer: A process where primary ownership of a post is transferred to a specified user through an administrative ticketing system. Post owners submit a transfer request, and site administrators approve/deny the requests within 48 hours, at which point ownership is immediately updated.
 
@@ -29,12 +29,12 @@ Anonymization: A feature where identifying author information is hidden from the
 
 Orphaning: A process where the link between an account and its content is permanently severed, after which editing is not permitted. The account link breaks while content remains available on the platform under the "orphan_account" username. This action is irreversible.
 
-Deletion: A process where a user account is closed while preserving its published content on the platform. The user account is permanently removed and all past posts and comments remain visible under the "deleted_account" username. This actio is irreversible.
+Deletion: A process where a user account is closed while preserving its published content on the platform. The user account is permanently removed and all past posts and comments remain visible under the "deleted_account" username. This action is irreversible.
 
 Username Change: A process where a user updates the username attached to their account. The site supports two types of username changes for handling past content:
 
 1. Preserve Old Username: Past content retains the original username without an active profile link. All future posts are attached to a new             profile link under the new username.
-2. All past content and profile links are automatically updated to display the new username. All future posts are attached to the new profile link      under the new username.
+2. Update Past Posts: All past content and profile links are automatically updated to display the new username. All future posts are attached to the new profile link under the new username.
 
 <!-- Why we built this project -->
  
