@@ -11,7 +11,7 @@ FanVerse is a Django blogging web application designed around flexible post owne
  
 ## Motivation
 
-Many online platforms assume content ownership is straightforward, where one user creates, edits, and owns a post forever. In the real world, user needs are much more complex. People co-author projects, transfer ownership of a post, or leave platforms entirely without wanting their contributions to be deleted or tied to their identity.
+Many online platforms assume content ownership is straightforward, where one user creates, edits, and owns a post forever. In the real world, user needs are much more complex. People co-author projects, transfer ownership of a post, or leave platforms entirely without wanting their contributions to be deleted or permanately tied to their identity.
 
 This application was built as part of a research project investigating existing unlinking mechanisms. These mechanisms allow users to detach their personal identity (username, email, or account) from content they previously posted online. As part of our research, we examined top global websites to study how different platforms support content unlinking, account deletion, anonymization, and ownership transfers.
 
