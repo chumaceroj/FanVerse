@@ -17,17 +17,23 @@ This application was built as part of a research project investigating existing 
 
 We found that very few websites provide mechanisms to protect user privacy without erasing previously published content. We built FanVerse as a working prototype to bring these unlinking mechanisms together on a single platform. This allowed us to test how anoynmization, post orphaning, collaborator role reassignment, ownership transfers operate inside a single Django application.
 
-To better understand each unlinking mechanims we've implemented, definitions are included below.
+To better understand each unlinking mechanim we've implemented, definitions are included below.
 
-Anonymization: Identifying information is hidden from the public but still exists behind the scenes. Content remains published on the site under the "Anonymous" username.
+Direct Ownership Transfer: A process where primary ownership of a post is moved from the current owner to a specified user. The new user immediately gains full ownership of the post, while the original author loses ownership privleges.
 
-Orphaning: A formal process where the tie between an account and its content is permanently severed, after which editing is not permitted. The account link vanishes while its content remains available on the platform under the "orphan_account" username.
+Admin-Mediated Ownership Transfer: A process where primary ownership of a post is transferred to a specified user through an administrative ticketing system. Post owners submit a transfer request, and site administrators approve/deny the requests within 48 hours, at which point ownership is immediately updated.
 
-Deletion: The user account is closed while content posted by the account is preserved on the site under the "deleted_account" username.
+Permission Reassignment: A process where primary ownership of a post is transferred to an existing collaborator on that post. Once a user accepts a collaboration invite, the post's current owner can reassign ownership to them. The original owner is automatically demoted to a collaborator and relinquishes their ownership privileges.
 
-Username Change: Changing the username attached to the account. The site supports two types of username changes.
-        1. All profile links with the old username are broken while the content on            the account is preserved.
+Anonymization: A feature where identifying author information is hidden from the public while remaining stored in the database. Content remains published under the "Anonymous" username, and the original author retains their editing privileges. This action is reversible.
 
+Orphaning: A process where the link between an account and its content is permanently severed, after which editing is not permitted. The account link breaks while content remains available on the platform under the "orphan_account" username. This action is irreversible.
+
+Deletion: A process where a user account is closed while preserving its published content on the platform. The user account is permanently removed and all past posts and comments remain visible under the "deleted_account" username. This actio is irreversible.
+
+Username Change: A process where a user updates the username attached to their account. The site supports two types of username changes for handling past content.
+        1. Preserve Old Username: Past content retains the original username                  without an active profile link. All future posts are attached to a new             profile link under the new username.
+        2. All past content and profile links are automatically updated to display            the new username. All future posts are attached to the new profile link            under the new username.
 
 <!-- Why we built this project -->
  
