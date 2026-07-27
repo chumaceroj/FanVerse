@@ -40,7 +40,43 @@ Username Change: A process where a user updates the username attached to their a
  
 ## Features
  
-<!-- List features organized by category -->
+- **Account & Profile**
+    - User registration and login
+    - Customizable user profiles with bios
+    - Profile settings page for account management
+
+- **Post Management**
+    - Create, edit, and delete blog posts
+    - Invite collaborators to co-author posts
+    - Threaded comment system with replies
+
+- **Ownership & Transfers**
+    - Direct transfer of post ownership to any user
+    - Admin-mediated transfer with approval workflow
+    - Permission reassignment to promote a collaborator to owner
+
+- **Privacy & Unlinking**
+    - Anonymize your name on posts while keeping editing access
+    - Collaborators can anonymize independently from the owner
+    - Orphan a post to permanently sever your connection to it
+    - Anonymize or orphan individual comments independently
+    - Delete your account while preserving your published content
+
+- **Username Management**
+    - Change username with two options for past content
+    - Preserve old username as unlinked plain text on existing posts
+    - Retroactively update all past posts to the new username
+
+- **Collaboration**
+    - Invite users to collaborate via username
+    - Accept or decline invitations from the notifications page
+    - Collaborators can edit posts, go anonymous, or leave at any time
+    - Owners can remove collaborators
+
+- **Notifications**
+    - Collaboration invite notifications with accept/decline
+    - Admin transfer request status notifications with dismiss
+    - Unread notification count displayed in the navigation bar
  
 ## Installation
  
