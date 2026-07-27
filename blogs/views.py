@@ -501,37 +501,38 @@ def request_admin_transfer(request, blog_id):
     if request.method == 'POST':
         # save the target username entered in the form
         target_identifier = request.POST.get('target_user_identifier', '').strip()
+
+        # check if username was left blank
+        if not target_identifier:
+            messages.error(request, "The username field was left blank. Please enter a username to continue.")
+            return redirect('post_settings', blog_id=blog.id)
         
-        if target_identifier:
-            # check if target user exists in FanVerse
-            user_exists = User.objects.filter(
-                Q(username=target_identifier) | Q(email=target_identifier)
-            ).exists()
+        # check if target user exists in FanVerse
+        user_exists = User.objects.filter(
+            Q(username=target_identifier) | Q(email=target_identifier)
+        ).exists()
 
-            if not user_exists:
-                messages.error(
-                    request,
-                    "The username you entered is not associated with a FanVerse acount. Please re-enter the username correctly."
-                )
-                return redirect('post_settings', blog_id=blog.id)
-
-            # prevent transferring to oneself
-            if target_identifier == request.user.username or target_identifier == request.user.email:
-                messages.error(request, "You cannot transfer a post to yourself.")
-                return redirect('post_settings', blog_id=blog.id)
-            
-            # create/save a new TransferRequest in the database
-            TransferRequest.objects.create(
-                # attach the current blog
-                blog=blog,
-                # set the logged-in user as requester and save the requested target username
-                requester=request.user,
-                target_user_identifier=target_identifier
+        if not user_exists:
+            messages.error(
+                request,
+                "The username you entered is not associated with a FanVerse acount. Please re-enter the username correctly."
             )
+            return redirect('post_settings', blog_id=blog.id)
+
+        # prevent transferring to oneself
+        if target_identifier == request.user.username or target_identifier == request.user.email:
+            messages.error(request, "You cannot transfer a post to yourself.")
+            return redirect('post_settings', blog_id=blog.id)
+            
+        # create/save a new TransferRequest in the database
+        TransferRequest.objects.create(
+            # attach the current blog
+            blog=blog,
+            # set the logged-in user as requester and save the requested target username
+            requester=request.user,
+            target_user_identifier=target_identifier
+        )
             # show the success message to the user
-            messages.success(request, "Request has been submitted successfully. You will receive a response in approximately 48 hours.")
-        else:
-            # show an error message if the input field was blank
-            messages.error(request, "Please enter a valid username.")
+        messages.success(request, "Request has been submitted successfully. You will receive a response in approximately 48 hours.")
 
     return redirect('post_settings', blog_id=blog.id)
