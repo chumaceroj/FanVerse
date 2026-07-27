@@ -308,6 +308,10 @@ def change_username(request):
         if method == 'preserve_old_username': # Freeze current username on all existing blogs and comments
             Blog.objects.filter(author=request.user).update(original_author_name=request.user.username)
             Comment.objects.filter(author=request.user).update(original_author_name=request.user.username)
+            Collaboration.objects.filter(user=request.user).update(original_username=request.user.username)
+        else: # Retroactive — clear any previously frozen names so posts show current username
+            Blog.objects.filter(author=request.user).update(original_author_name=None)
+            Comment.objects.filter(author=request.user).update(original_author_name=None)
         
         # Change the username
         request.user.username = new_username
@@ -415,6 +419,16 @@ def leave_collaboration(request, blog_id):
             collaboration.delete()
         return redirect('blog_detail', blog_id=blog_id)
     return redirect('index')
+
+
+def anonymize_collaborator(request, blog_id):
+    if request.method == 'POST':
+        blog = get_object_or_404(Blog, id=blog_id)
+        collab = Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator').first()
+        if collab:
+            collab.is_anonymous = not collab.is_anonymous
+            collab.save()
+    return redirect('blog_detail', blog_id=blog_id)
 
 
 def reassign_owner(request, blog_id):

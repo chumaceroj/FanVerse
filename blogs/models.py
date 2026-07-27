@@ -138,6 +138,8 @@ class Collaboration(models.Model):
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='collaborations')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collaborations')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    is_anonymous = models.BooleanField(default=False)  # each collaborator can anonymize independently
+    original_username = models.CharField(max_length=200, null=True, blank=True)  # frozen username when user picks "preserve"
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
