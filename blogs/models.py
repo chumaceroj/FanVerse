@@ -49,29 +49,33 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
         self.is_anonymous = False
         self.save()
 
-    def transfer(self, new_owner):
+    def transfer(self, new_owner, keep_old_owner=False):
         """Transfer blog ownership to another user"""
         old_owner = self.author 
 
-         # updated: save the existing collaborator's anoynmity state
+        # save the existing collaborator's anonymity state
         existing_collab = Collaboration.objects.filter(blog=self, user=new_owner).first()
         is_anon = existing_collab.is_anonymous if existing_collab else False
 
-        #update the old owner's collaboration record to "collaborator" 
         if old_owner:
-            Collaboration.objects.update_or_create(
-                blog=self, user=old_owner,
-                defaults={'role': 'collaborator'}
-            )
+            if keep_old_owner:
+                # permission reassignment: demote old owner to collaborator
+                Collaboration.objects.update_or_create(
+                    blog=self, user=old_owner,
+                    defaults={'role': 'collaborator'}
+                )
+            else:
+                # direct transfer: remove old owner entirely
+                Collaboration.objects.filter(blog=self, user=old_owner).delete()
 
-        # updated: change new owner's collaboration record to "owner"
+        # change new owner's collaboration record to "owner"
         Collaboration.objects.update_or_create(
             blog=self, user=new_owner,
             defaults={'role': 'owner', 'is_anonymous': is_anon}
         )
 
         self.author = new_owner
-        self.original_author_name = None # prevents bugs with changing username
+        self.original_author_name = None
 
         if is_anon:
             self.is_anonymous = True

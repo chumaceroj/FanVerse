@@ -458,7 +458,7 @@ def reassign_owner(request, blog_id):
         if not new_owner:
             return redirect('post_settings', blog_id=blog.id)
         
-        blog.transfer(new_owner)
+        blog.transfer(new_owner, keep_old_owner=True)
 
         return redirect('blog_detail', blog_id=blog_id)
     return redirect('index')

@@ -272,7 +272,7 @@ Only the current post owner can submit an admin-mediated transfer request.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
 - **Pending invitations:** Existing pending collaboration invitations remain tied to the post.
 #### Edge Cases
-- Only one transfer request can be pending for a post at a time. The owner cannot submit multiple requests to different users simultaneously.
+- Mutliple admin-mediated transfer requests are permitted at a time
 - If the entered username does not exist, an error message is displayed and no request is created.
 - If the owner tries to transfer to themselves, an error message is displayed and no request is created.
 - If the owner directly transfers the post while an admin-mediated request is still pending, the pending request remains in the system.
