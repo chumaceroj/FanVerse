@@ -625,7 +625,7 @@ Any logged-in user.
 
 #### Edge Cases
 - Users can freely reploy to comments authored by "Anonymous" and "orphan_account". The thread structure links to the parent comment ID regardless of whether the parent author's identity is hidden or if the parent is orphaned.
-- If a parent comment is deleted or orphaned, all child replies remain nested beneath it without breaking the thread structure (parent comment's name merely changes to "deleted_user" or "orphan_account").
+- If a parent comment's account is deleted or orphaned, all child replies remain nested beneath it without breaking the thread structure (parent comment's name merely changes to "deleted_user" or "orphan_account").
 - If a user selects **Submit Reply** with an empty comment, a message bubble reading "Fill out this field" points to the text box.
 - If a user selects **Submit Reply** with a comment only containing whitespace, a comment record is not created in the database and the page reloads without throwing an error.
 
@@ -821,7 +821,7 @@ Any logged-in user who has received a collaboration invitation.
 - **Post:** Unaffected until the invitation is accepted, at which point the user is added as a collaborator.
 
 #### Edge Cases
-- If the post is deleted while the invitation is pending, the notification is removed automatically.
+- If the post is orphaned while the invitation is pending, the notification is removed automatically.
 - Only received invitations appear in notifications. Invitations the user has sent are not displayed here.
 
 
@@ -846,8 +846,8 @@ The user who submitted the transfer request and the user who was specified as th
 - **Notification count:** Transfer request notifications do not affect the notification count in the navigation bar, which only tracks pending collaboration invitations.
 
 #### Edge Cases
-- If the post is deleted before the admin responds, the transfer request and its notifications are removed.
-- If either the requester or the recipient deletes their account, their notification is removed but the other user's notification remains.
+- If the post is orphaned before the admin responds, the transfer request and its notifications are removed.
+- If either the requester or the recipient deletes their account before transfer request is completed, their notification is removed but the other user's notification remains.
 
 
 ### 6.3 Notification Count
@@ -861,5 +861,5 @@ The navigation bar displays a count of unresolved notifications next to the "Not
 3. If there are no pending notifications, it displays simply as "Notifications."
 
 #### Edge Cases
-- The count only includes pending collaboration invitations. Transfer request notifications are not included in the count.
+- The count includes pending collaboration invitations and transfer request notifications.
 - The count updates immediately after accepting or declining an invitation.
