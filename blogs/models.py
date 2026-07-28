@@ -53,7 +53,7 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
         """Transfer blog ownership to another user"""
         old_owner = self.author 
 
-         # updated: save the existing collaborator's anoynmity state
+        # updated: save the existing collaborator's anoynmity state
         existing_collab = Collaboration.objects.filter(blog=self, user=new_owner).first()
         is_anon = existing_collab.is_anonymous if existing_collab else False
 

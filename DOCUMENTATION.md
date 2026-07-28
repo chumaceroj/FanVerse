@@ -774,7 +774,7 @@ The user who submitted the transfer request and the user who was specified as th
 #### Effect on Related Data
 - **Approved:** The transfer is automatically executed upon approval. The post's ownership changes to the recipient, identical to a direct transfer.
 - **Denied:** No changes are made to the post. The owner retains full ownership.
-- **Notification count:** Transfer request notifications do not affect the notification count in the navigation bar, which only tracks pending collaboration invitations.
+- **Notification count:** The notification count in the navigation bar, tracks both pending collaboration invitations and admin-mediated transfer requests.
 #### Edge Cases
 - If the post is deleted before the admin responds, the transfer request and its notifications are removed.
 - If either the requester or the recipient deletes their account, their notification is removed but the other user's notification remains.
