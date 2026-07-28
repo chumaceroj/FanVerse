@@ -311,9 +311,10 @@ def change_username(request):
             Blog.objects.filter(author=request.user).update(original_author_name=request.user.username)
             Comment.objects.filter(author=request.user).update(original_author_name=request.user.username)
             Collaboration.objects.filter(user=request.user).update(original_username=request.user.username)
-        else: # Retroactive — clear any previously frozen names so posts show current username
+        else: # Retroactive — clear any previously saved names so posts show current username
             Blog.objects.filter(author=request.user).update(original_author_name=None)
             Comment.objects.filter(author=request.user).update(original_author_name=None)
+            Collaboration.objects.filter(user=request.user).update(original_username=None)
         
         # Change the username
         request.user.username = new_username
