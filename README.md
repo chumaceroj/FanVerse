@@ -1,7 +1,4 @@
-## Screenshots
- 
-<!-- Add screenshots of the site here -->
- 
+
 ---
  
 ## Description
@@ -16,6 +13,9 @@ Many online platforms assume content ownership is straightforward, where one use
 This application was built as part of a research project investigating existing unlinking mechanisms. These mechanisms allow users to detach their personal identity (username, email, or account) from content they previously posted online. As part of our research, we examined top global websites to study how different platforms support content unlinking, account deletion, anonymization, and ownership transfers.
 
 We found that very few websites provide mechanisms to protect user privacy without erasing previously published content. We built FanVerse as a working prototype to bring these unlinking mechanisms together on a single platform. This will allow us to test how users interact with anonymization, post orphaning, collaborator role reassignment, and ownership transfers operate inside a single Django application.
+<!-- Why we built this project -->
+
+## Definitions
 
 To better understand each unlinking mechanism we've implemented, definitions are included below.
 
@@ -36,8 +36,7 @@ Username Change: A process where a user updates the username attached to their a
 1. Preserve Old Username: Past content retains the original username without an active profile link. All future posts are attached to a new             profile link under the new username.
 2. Update Past Posts: All past content and profile links are automatically updated to display the new username. All future posts are attached to the new profile link under the new username.
 
-<!-- Why we built this project -->
- 
+
 ## Features
  
 - **Account & Profile**
@@ -158,9 +157,6 @@ Fandom/
 - Python
 - Django
 - HTML
-## Known Limitations
- 
-<!-- List any known bugs or limitations -->
  
 ## Authors
  
