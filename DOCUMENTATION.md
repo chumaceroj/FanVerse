@@ -363,10 +363,154 @@ Any logged-in user can change their username from Profile Settings.
 Username changes are reversible by changing back to the original username, provided no other user has taken it. However, if "preserve old username" was selected, previously saved old names would need to be manually cleared by choosing "update all posts" on a subsequent change.
 
 ## 3. Collaboration System
+
 ### 3.1 Inviting Collaborators
+
+#### Description
+Inviting collaborators allows the post owner to add co-authors to a post. Invitations can be sent from two places: the "Invite Collaborator" section in Post Settings for existing posts, or the "Invite Collaborators" field on the Create Post page for new posts. The Create Post page supports inviting multiple users at once using comma-separated usernames. Upon receiving an invitation, the invited user is notified and can accept or decline from their Notifications page.
+
+#### Motivation
+This feature serves as the foundation for the Permission Reassignment unlinking mechanism. In order for ownership to be reassigned to a collaborator, users must first be invited and accepted as collaborators on a post. The invitation system was designed to mirror collaboration workflows on platforms like Google Drive and Notion, where document owners invite contributors who can later be promoted.
+
+#### Who Can Use It
+Only the current post owner can invite collaborators.
+
+#### How It Works
+1. **From Post Settings:** The owner enters a single username in the "Invite Collaborator" field and clicks "Send Invite." The system validates the username and creates a pending Invitation in the database. The invited user receives a notification.
+2. **From Create Post:** The owner enters one or more usernames separated by commas in the optional collaborator field before publishing. Upon post creation, invitations are sent to all valid usernames.
+3. The system validates that the entered username exists, is not the owner themselves, and is not already a collaborator or pending invite on that post.
+4. If validation fails, an error message is displayed explaining why the invite could not be sent.
+5. If a user was previously invited and declined, re-inviting them resets the existing invitation to pending.
+6. Pending invites and current collaborators are listed in the "Invite Collaborator" section of Post Settings for the owner's reference.
+
+#### Effect on Related Data
+- **Post:** The post remains unchanged until the invitation is accepted.
+- **Invited user:** Receives a pending notification on their Notifications page. No access is granted until they accept.
+- **Existing collaborators:** Unaffected by new invitations.
+- **Notification count:** The invited user's notification count in the navigation bar increases by one.
+
+#### Edge Cases
+- Inviting a username that does not exist displays an error message.
+- Inviting yourself displays an error message.
+- Inviting someone who is already a collaborator displays an error message.
+- Inviting someone who already has a pending invite displays an error message.
+- On the Create Post page, invalid usernames in the comma-separated list are silently skipped while valid ones receive invitations.
+- If the post is deleted while invitations are pending, all associated invitations are deleted.
+
+#### Reversibility
+The owner can remove a collaborator after they accept, but cannot retract a pending invitation. The invited user can decline the invitation from their Notifications page.
+
+
 ### 3.2 Accepting and Declining Invitations
+
+#### Description
+When a user is invited to collaborate on a post, they receive a notification on their Notifications page. From there, they can accept to join the post as a collaborator or decline to reject the invitation. Accepting creates a Collaboration record linking the user to the post with the "collaborator" role. Declining updates the invitation status to "declined" without creating any collaboration.
+
+#### Motivation
+This feature is a direct extension of the invitation system that enables Permission Reassignment. The accept/decline workflow mirrors collaboration patterns on platforms like Google Drive and Notion, where invited users must explicitly opt in before gaining access.
+
+#### Who Can Use It
+Only the user who was invited can accept or decline their own invitation.
+
+#### How It Works
+1. The invited user navigates to their Notifications page.
+2. Each pending invitation displays the name of the person who invited them and the post title as a clickable link.
+3. The user clicks **Accept** or **Decline**.
+4. **Accept:** The invitation status is updated to "accepted" and a new Collaboration record is created with the role "collaborator." The user's name appears on the post's author line and they gain editing access.
+5. **Decline:** The invitation status is updated to "declined." No collaboration is created and the notification is removed from the page.
+
+#### Effect on Related Data
+- **Accept — Post:** The user's name is added to the author line alongside the owner and any other collaborators.
+- **Accept — Profile:** The post appears on the new collaborator's profile under their Posts tab.
+- **Accept — Editing:** The new collaborator gains access to edit the post and sees collaborator controls (Edit Blog Post, Go Anonymous, Leave Collaboration) on the post detail page.
+- **Accept — Notification count:** The user's notification count decreases by one.
+- **Decline — Post:** No changes. The post remains as-is.
+- **Decline — Invitation:** The invitation status is set to "declined." The owner can re-invite the user, which resets the existing invitation to pending.
+
+#### Edge Cases
+- If the post is deleted before the user responds, the invitation is deleted and no longer appears in notifications.
+- If a user tries to accept or decline an invitation that belongs to another user, they are redirected to the Notifications page with no changes made.
+- After declining, the post owner can re-invite the same user, resetting the invitation to pending.
+
+#### Reversibility
+Accepting is reversible — the collaborator can leave at any time via "Leave Collaboration." Declining is reversible — the owner can re-invite the user.
+
 ### 3.3 Collaborator Permissions
+
+#### Description
+Collaborators have a limited set of permissions compared to the post owner. They can edit the post content and title, anonymize their own name on the post, and leave the collaboration. They cannot access Post Settings or perform any owner-level actions such as transferring ownership, orphaning the post, or managing other collaborators.
+
+#### Motivation
+The distinction between owner and collaborator permissions is a direct consequence of the Permission Reassignment unlinking mechanism. Platforms like Google Drive and Discord differentiate between owner-level and editor-level access, ensuring that only the primary owner can perform destructive or irreversible actions. Our implementation follows this pattern, restricting unlinking mechanisms and management controls to the post owner while giving collaborators the tools they need to contribute and manage their own identity on the post.
+
+#### Who Can Use It
+Any user with an active "collaborator" role on a post.
+
+#### How It Works
+1. When a collaborator views a post they collaborate on, they see a dashed collaborator controls panel below the post content.
+2. The panel contains an "Edit Blog Post" link, a "Go Anonymous" / "Reveal Identity" button, and a "Leave Collaboration" button.
+3. In the navigation bar on the post detail page, only the owner sees "Edit Post" and "Post Settings" buttons. Collaborators do not see Post Settings.
+4. Collaborators can see all other authors listed on the post, with the owner always listed first.
+
+#### Permissions Breakdown
+- **Can do:**
+  - Edit the post title and content
+  - Anonymize their own name on the post independently of others
+  - Reveal their own identity after anonymizing
+  - Leave the collaboration at any time
+  - Comment on the post
+- **Cannot do:**
+  - Access Post Settings
+  - Invite or remove collaborators
+  - Transfer or reassign ownership
+  - Orphan the post
+  - Anonymize or de-anonymize the owner or other collaborators
+
+#### Effect on Related Data
+- **Post:** Collaborators can modify the title and content. All other post data (author, timestamps, anonymization status) is unaffected by collaborator edits.
+- **Other collaborators:** Each collaborator's anonymization and participation is independent. One collaborator's actions do not affect another's visibility or access.
+- **Owner:** The owner's permissions and controls are unaffected by collaborator actions.
+
+#### Edge Cases
+- If the post is orphaned, all collaborator permissions are revoked and the collaborator controls panel is hidden.
+- If the owner deletes their account, collaborators retain editing access but Post Settings become inaccessible since there is no owner.
+- If a collaborator is promoted to owner via Permission Reassignment, they gain full owner permissions and the previous owner is demoted to collaborator permissions.
+
+#### Reversibility
+Collaborator permissions are granted upon accepting an invitation and revoked upon leaving or being removed. A removed or departed collaborator can regain permissions only through a new invitation from the owner.
+
 ### 3.4 Removing Collaborators
+
+#### Description
+The post owner can remove any collaborator from a post through Post Settings. Removing a collaborator deletes their Collaboration record, removes their name from the author line, and revokes all editing access.
+
+#### Motivation
+This feature complements the collaboration system that enables Permission Reassignment. Platforms like Google Drive and Notion allow document owners to revoke access from contributors at any time. Our implementation follows this pattern, giving the post owner full control over who has access to their post.
+
+#### Who Can Use It
+Only the current post owner can remove collaborators.
+
+#### How It Works
+1. The owner navigates to Post Settings and locates the "Invite Collaborator" section.
+2. Below the invite form, current collaborators are listed with a "Remove" button next to each name.
+3. The owner clicks "Remove" next to the collaborator they want to remove.
+4. A confirmation dialog asks the owner to confirm the removal.
+5. Upon confirmation, the Collaboration record is deleted and the collaborator's name is removed from the author line.
+
+#### Effect on Related Data
+- **Removed collaborator:** Loses all editing access and collaborator controls. Their name is removed from the author line on all pages.
+- **Comments:** Comments left by the removed collaborator on the post remain intact and visible. The author link on those comments continues to point to their user profile.
+- **Profile:** The post is removed from the former collaborator's profile under their Posts tab.
+- **Other collaborators:** Unaffected by the removal.
+- **Post content:** The title, content, and timestamp remain unchanged.
+
+#### Edge Cases
+- The owner cannot remove themselves using this mechanism. Ownership must be transferred via Direct Transfer, Admin-Mediated Transfer, or Permission Reassignment.
+- If an anonymized collaborator is removed, the "Anonymous" entry is removed from the author line.
+- If a removed user is re-invited later and accepts, they start fresh as a new collaborator with default settings (not anonymous).
+
+#### Reversibility
+Removing a collaborator is irreversible. To restore the collaborator, the owner must send a new invitation from Post Settings, which the user must accept from their Notifications page.
 
 
 ### 3.5 Leaving a Collaboration
@@ -642,6 +786,66 @@ This action is irrevesible. Account deletion permanently deletes the User record
 
 
 ## 6. Notifications
+
 ### 6.1 Collaboration Invites
+
+#### Description
+When a user is invited to collaborate on a post, a notification appears on their Notifications page. Each notification displays who sent the invite, a clickable link to the post, and the date the invitation was sent. The user can accept or decline directly from the notification.
+
+#### Who Can Use It
+Any logged-in user who has received a collaboration invitation.
+
+#### How It Works
+1. The user clicks "Notifications" in the navigation bar.
+2. Pending collaboration invitations are listed with the inviter's username, a clickable link to the post, and the invitation date.
+3. Each invitation has "Accept" and "Decline" buttons.
+4. Accepting creates a Collaboration record and removes the notification. Declining updates the invitation status and removes the notification.
+5. The user is redirected back to the Notifications page after either action.
+
+#### Effect on Related Data
+- **Notification count:** The count in the navigation bar reflects the number of pending invitations. It decreases when an invitation is accepted or declined.
+- **Post:** Unaffected until the invitation is accepted, at which point the user is added as a collaborator.
+
+#### Edge Cases
+- If the post is deleted while the invitation is pending, the notification is removed automatically.
+- Only received invitations appear in notifications. Invitations the user has sent are not displayed here.
+
+
 ### 6.2 Transfer Request Updates
+
+#### Description
+When an administrator approves or denies an admin-mediated transfer request, both the requester and the recipient receive a notification on their Notifications page. The notification displays whether the request was approved or denied. Each user can independently dismiss their notification after viewing it.
+
+#### Who Can Use It
+The user who submitted the transfer request and the user who was specified as the recipient.
+
+#### How It Works
+1. An administrator changes the transfer request status to "APPROVED" or "DENIED" in the Django admin panel.
+2. Notifications appear on the Notifications page for both the requester and the recipient.
+3. Each notification displays the post title, the outcome (approved or denied), and the date.
+4. Each user can click "Dismiss" to clear the notification from their view.
+5. Dismissing is independent — one user dismissing does not affect the other user's notification.
+
+#### Effect on Related Data
+- **Approved:** The transfer is automatically executed upon approval. The post's ownership changes to the recipient, identical to a direct transfer.
+- **Denied:** No changes are made to the post. The owner retains full ownership.
+- **Notification count:** Transfer request notifications do not affect the notification count in the navigation bar, which only tracks pending collaboration invitations.
+
+#### Edge Cases
+- If the post is deleted before the admin responds, the transfer request and its notifications are removed.
+- If either the requester or the recipient deletes their account, their notification is removed but the other user's notification remains.
+
+
 ### 6.3 Notification Count
+
+#### Description
+The navigation bar displays a count of unresolved notifications next to the "Notifications" link. This count reflects the number of pending collaboration invitations the user has received. The count updates automatically as invitations are accepted, declined, or new ones are received.
+
+#### How It Works
+1. A context processor runs on every page load and counts the number of pending invitations for the current user.
+2. If the count is greater than zero, it displays as "Notifications (X)" in the navigation bar.
+3. If there are no pending notifications, it displays simply as "Notifications."
+
+#### Edge Cases
+- The count only includes pending collaboration invitations. Transfer request notifications are not included in the count.
+- The count updates immediately after accepting or declining an invitation.
