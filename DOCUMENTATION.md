@@ -15,10 +15,12 @@ This feature was informed by our observation of AO3 (Archive of Our Own), which 
 Any author, including the owner and any collaborators can anonymize themselves on any post.
 
 #### How It Works
-1. The author navigates to the post and selects **Post Settings**.
-2. The author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-3. The form sends a POST request to anonymize_blog.
-4.  The view updates the blog.is_anonymous boolean in the Blog model and redirects back to the post page.
+1. The owner navigates to Post Settings and clicks **Go Anonymous** (or **Reveal Identity** if currently anonymous).
+2. A confirmation dialog warns that anonymization hides their profile name from public viewers.
+3. Upon confirmation, the form sends a POST request to the `anonymize_blog` view.
+4. The view verifies that `blog.author == request.user` and toggles the `is_anonymous` boolean on the Blog model via the `anonymize()` or `deanonymize()` method.
+5. The `get_display_author()` method detects `is_anonymous == True` and returns "Anonymous" instead of the owner's username.
+6. The post's author line updates on both the homepage and the post detail page. The post is also excluded from the owner's profile page via the `is_anonymous=False` filter in the `profile` view.
 
 #### Effect on Related Data
 - **Collaborators:** Collaborator names are not affected by the owner's anonymization. Each collaborator controls their own anonymization independently.
@@ -47,10 +49,12 @@ This feature was informed by our observation of AO3 (Archive of Our Own), which 
 Any active collaborator on a post.
 
 #### How It Works
-1. The collaborator navigates to the post.
-2. In the collaborator controls block below the post, the collaborator selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-3. The form submits a POST request to anonymize_collaborator.
-4. The view updates the collab.is_anonymous boolean on the user's Collaboration model and redirects back to the post page
+1. The collaborator navigates to the post detail page where they are listed as a co-author.
+2. In the collaborator controls panel below the post, the collaborator clicks **Go Anonymous** (or **Reveal Identity** if currently anonymous).
+3. A confirmation dialog warns that anonymization hides their name on this post.
+4. Upon confirmation, the form sends a POST request to the `anonymize_collaborator` view.
+5. The view looks up the user's Collaboration record using `Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator')` and toggles the `is_anonymous` boolean on that record.
+6. The post's author line template checks `collab.is_anonymous` for each collaborator individually. If `True`, that collaborator's name displays as "Anonymous" instead of their username.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -81,10 +85,13 @@ This feature was informed by by our observation of AO3 (Archive of Our Own), whi
 The logged-in author of the comment.
 
 #### How It Works
-1. The comment author navigated to the post detail page where their comment is posted.
-2. Below their comment, the author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-3. The form submits a POST request to anonymize_comment.
-4. The view updates the is_anonymous boolean on the Comment model and redirects back to the post page.
+1. The comment author navigates to the post detail page where their comment is published.
+2. Below their comment, the author clicks **Make Comment Anonymous** (or **Reveal Comment Identity** if currently anonymous).
+3. A confirmation dialog warns that anonymization hides their profile name on this comment.
+4. Upon confirmation, the form sends a POST request to the `anonymize_comment` view.
+5. The view verifies ownership via `comment.can_edit(request.user)` and toggles the `is_anonymous` boolean on the Comment model via the `anonymize()` or `deanonymize()` method.
+6. The `get_display_author()` method detects `is_anonymous == True` and returns "Anonymous" instead of the comment author's username.
+7. The comment is also excluded from the author's profile page via the `is_anonymous=False` filter in the `profile` view.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -115,10 +122,13 @@ This feature was directly informed by AO3 (Archive of Our Own), which allows cre
 The primary owner of the post.
 
 #### How It Works
-1. The primary owner navigates to the post detail page and selects **Post Settings**.
-2. The owner selects **Orphan Post**.
-3. The form submits a POST request to orphan_blog.
-4. The view updates the is_orphaned boolean and deletes all Collaboration records associated with the post
+1. The owner navigates to Post Settings and clicks **Orphan Post**.
+2. A confirmation dialog warns that orphaning is permanent and the owner will lose ownership forever.
+3. Upon confirmation, the form sends a POST request to the `orphan_blog` view.
+4. The view verifies that `blog.author == request.user` and calls the `orphan()` method on the Blog model.
+5. The `orphan()` method sets `blog.author` to `None`, sets `is_orphaned` to `True`, calls `self.save()`, and then deletes all associated Collaboration records via `self.collaborations.all().delete()`.
+6. The `get_display_author()` method detects `is_orphaned == True` and returns "orphan_account."
+7. The `can_edit()` method returns `False` for all users when `is_orphaned` is `True`, permanently revoking editing access.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's account link is permanently removed and the author name is changed to "orphan_account". The owner loses ownership of the post, removing editing and post settings access.
@@ -152,9 +162,13 @@ The logged-in author of the comment.
 
 #### How It Works
 1. The comment author navigates to the post detail page where their comment is published.
-2. Beneath their comment, the author selects **Orphan Comment**
-3. The form submits a POST request to orphan_comment
-4. The view updates the is_orphaned boolean in the Comment model and redirects back to the post page.
+2. Beneath their comment, the author clicks **Orphan Comment**.
+3. A confirmation dialog warns that comment orphaning is permanent.
+4. Upon confirmation, the form sends a POST request to the `orphan_comment` view.
+5. The view verifies ownership via `comment.can_edit(request.user)` and calls the `orphan()` method on the Comment model.
+6. The `orphan()` method sets `comment.author` to `None`, sets `is_orphaned` to `True`, and calls `self.save()`.
+7. The `get_display_author()` method detects `is_orphaned == True` and returns "orphan_account."
+8. The `can_edit()` method returns `False` when `is_orphaned` is `True`, permanently revoking editing access for the comment.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
