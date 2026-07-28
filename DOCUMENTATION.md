@@ -28,7 +28,7 @@ Any author, including the owner and any collaborators can anonymize themselves o
 - **Editing privileges:** The owner retains full editing access and can still access Post Settings.
 
 #### Edge Cases
-- Account deletion process overrides an anonymous author, changing from Anonymous to deleted_user.
+- Account deletion process overrides an anonymous author, changing from "Anonymous" to "deleted_user".
 - If an owner anonymizes themselves and the post has collaborators, the collaborators names remain visible.
 
 #### Reversibility
@@ -62,8 +62,8 @@ Any active collaborator on a post.
 
 #### Edge Cases
 - If an anoynmous collaborator deletes their account, the collaborator's name is changed to deleted_user. The collaboration record is preserved in the database to facilitate this name change.
-- If an anonymous collaborator is promoted to primary owner via **Reassign Owner**, ownership transfers to the anonymous collaborator and the collaborator's anonymization state is preserved (name remains Anonymous).
-- If an anonymous collaborator selects **Leave Collaboration**, their Collaboration record is deleted from the database. The user loses editing access and their name (Anonymous) is stripped from the post.
+- If an anonymous collaborator is promoted to primary owner via **Reassign Owner**, ownership transfers to the anonymous collaborator and the collaborator's anonymization state is preserved (name remains "Anonymous").
+- If an anonymous collaborator selects **Leave Collaboration**, their Collaboration record is deleted from the database. The user loses editing access and their name ("Anonymous") is stripped from the post.
 
 #### Reversibility
 Collaborator anonymization is reversible. Collaborators can click **Reveal Identity** at any time on the post detail page.
@@ -72,7 +72,7 @@ Collaborator anonymization is reversible. Collaborators can click **Reveal Ident
 ### 2.3 Comment Anonymization
 
 #### Description
-Content anonymization allows the author of a comment to hide their username from public view while retaining ownership and editing privileges of the comment. When selected, the comment author's username is replaced with "Anonymous" on the post page, while the comment content and reply chain remain intact.
+Comment anonymization allows the author of a comment to hide their username from public view while retaining ownership and editing privileges of the comment. When selected, the comment author's username is replaced with "Anonymous" on the post page, while the comment content and reply chain remain intact.
 
 #### Motivation
 This feature was informed by by our observation of AO3 (Archive of Our Own), which supports comment anonymization through temporary "anonymous collections". On AO3, commenters identities on a post can only be hidden if the post itself is placed in an anonymous collection. Even then, anonymity only applies to the post creator's comments/replies (marked as "Anonymous Creator"), while the identites of general commenters remain visible. If the post is later removed from the anonymous collection, all creator replied reveal the author's username. Our implementation improved upon this design by offering user-level comment anonymization. Indivual commenters can independently anonymize each of their own comments, ensuring their privacy selections are persistent and not tied to or overriddden by post owners.
@@ -448,8 +448,8 @@ Any user with an active "collaborator" role on a post.
 
 #### How It Works
 1. When a collaborator views a post they collaborate on, they see a dashed collaborator controls panel below the post content.
-2. The panel contains an "Edit Blog Post" link, a "Go Anonymous" / "Reveal Identity" button, and a "Leave Collaboration" button.
-3. In the navigation bar on the post detail page, only the owner sees "Edit Post" and "Post Settings" buttons. Collaborators do not see Post Settings.
+2. The panel contains an **Edit Blog Post** link, a **Go Anonymous** / **Reveal Identity** button, and a **Leave Collaboration** button.
+3. In the navigation bar on the post detail page, only the owner sees **Edit Post** and **Post Settings** buttons. Collaborators do not see Post Settings.
 4. Collaborators can see all other authors listed on the post, with the owner always listed first.
 
 #### Permissions Breakdown
