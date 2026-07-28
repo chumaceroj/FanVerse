@@ -15,10 +15,10 @@ This feature was informed by our observation of AO3 (Archive of Our Own), which 
 Any author, including the owner and any collaborators can anonymize themselves on any post.
 
 #### How It Works
-- The author navigates to the post and selects **Post Settings**.
-- The author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-- The form sends a POST request to anonymize_blog.
-- The view updates the blog.is_anonymous boolean in the Blog model and redirects back to the post page.
+1. The author navigates to the post and selects **Post Settings**.
+2. The author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
+3. The form sends a POST request to anonymize_blog.
+4.  The view updates the blog.is_anonymous boolean in the Blog model and redirects back to the post page.
 
 #### Effect on Related Data
 - **Collaborators:** Collaborator names are not affected by the owner's anonymization. Each collaborator controls their own anonymization independently.
@@ -47,10 +47,10 @@ This feature was informed by our observation of AO3 (Archive of Our Own), which 
 Any active collaborator on a post.
 
 #### How It Works
-- The collaborator navigates to the post.
-- In the collaborator controls block below the post, the collaborator selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-- The form submits a POST request to anonymize_collaborator.
-- The view updates the collab.is_anonymous boolean on the user's Collaboration model and redirects back to the post page
+1. The collaborator navigates to the post.
+2. In the collaborator controls block below the post, the collaborator selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
+3. The form submits a POST request to anonymize_collaborator.
+4. The view updates the collab.is_anonymous boolean on the user's Collaboration model and redirects back to the post page
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -81,10 +81,10 @@ This feature was informed by by our observation of AO3 (Archive of Our Own), whi
 The logged-in author of the comment.
 
 #### How It Works
-- The comment author navigated to the post detail page where their comment is posted.
-- Below their comment, the author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
-- The form submits a POST request to anonymize_comment.
-- The view updates the is_anonymous boolean on the Comment model and redirects back to the post page.
+1. The comment author navigated to the post detail page where their comment is posted.
+2. Below their comment, the author selects **Go Anonymous** (or **Reveal Identity** if currently anonymous).
+3. The form submits a POST request to anonymize_comment.
+4. The view updates the is_anonymous boolean on the Comment model and redirects back to the post page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -115,10 +115,10 @@ This feature was directly informed by AO3 (Archive of Our Own), which allows cre
 The primary owner of the post.
 
 #### How It Works
-- The primary owner navigates to the post detail page and selects **Post Settings**.
-- The owner selects **Orphan Post**.
-- The form submits a POST request to orphan_blog.
-- The view updates the is_orphaned boolean and deletes all Collaboration records associated with the post
+1. The primary owner navigates to the post detail page and selects **Post Settings**.
+2. The owner selects **Orphan Post**.
+3. The form submits a POST request to orphan_blog.
+4. The view updates the is_orphaned boolean and deletes all Collaboration records associated with the post
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's account link is permanently removed and the author name is changed to "orphan_account". The owner loses ownership of the post, removing editing and post settings access.
@@ -151,10 +151,10 @@ This feature was informed by by our observation of AO3 (Archive of Our Own), whi
 The logged-in author of the comment.
 
 #### How It Works
-- The comment author navigates to the post detail page where their comment is published.
-- Beneath their comment, the author selects **Orphan Comment**
-- The form submits a POST request to orphan_comment
-- The view updates the is_orphaned boolean in the Comment model and redirects back to the post page.
+1. The comment author navigates to the post detail page where their comment is published.
+2. Beneath their comment, the author selects **Orphan Comment**
+3. The form submits a POST request to orphan_comment
+4. The view updates the is_orphaned boolean in the Comment model and redirects back to the post page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -381,10 +381,10 @@ This feature was informed by multi-author collaboration on platforms like Google
 Any active collaborator on a post (excluding the primary owner).
 
 #### How It Works
-- The collaborator navigates to the post detail page.
-- In the collaborator controls section below the post, the collaborator selects **Leave Collaboration**.
-- The form submits a POST request to leave_collaboration.
-- The view deletes the collaborators Collaboration instance and redirects back to the psot page.
+1. The collaborator navigates to the post detail page.
+2. In the collaborator controls section below the post, the collaborator selects **Leave Collaboration**.
+3. The form submits a POST request to leave_collaboration.
+4. The view deletes the collaborators Collaboration instance and redirects back to the psot page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -416,11 +416,11 @@ This feature was informed by community discussion and Q&A platforms like Reddit 
 Any logged-in user.
 
 #### How It Works
-- The user navigates to the post detail page.
-- To leave a top level-comment, the user enters text into the main comment box below the post and selects **Post Comment**.
-- To reply to an existing comment, the user selects **Reply** beneath that specific comment, enters text into the reply field, and selects **Submit Reply**.
-- The form submits a POST request to add_comment.
-- The view creates a Comment record associated with the requesting user, and redirects back to the post page.
+1. The user navigates to the post detail page.
+2. To leave a top level-comment, the user enters text into the main comment box below the post and selects **Post Comment**.
+3. To reply to an existing comment, the user selects **Reply** beneath that specific comment, enters text into the reply field, and selects **Submit Reply**.
+4. The form submits a POST request to add_comment.
+5. The view creates a Comment record associated with the requesting user, and redirects back to the post page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -451,11 +451,11 @@ This feature was informed by and modeled after platforms like Reddit, where mult
 Any logged-in user.
 
 #### How It Works
-- The user navigates to the post detail page and locates the target comment.
-- Below the comment, the user selects **Reply**, which toggles the inline reply text box.
-- The user enters their response and selects **Submit Reply**.
-- The form submits a POST request to add_comment, passing along the hiddent parent_id field
-- The view creates a new Comment record linked to both the Blog post and the parent Comment instance, then redirects back to the post detail page.
+1. The user navigates to the post detail page and locates the target comment.
+2. Below the comment, the user selects **Reply**, which toggles the inline reply text box.
+3. The user enters their response and selects **Submit Reply**.
+4. The form submits a POST request to add_comment, passing along the hiddent parent_id field
+5. The view creates a new Comment record linked to both the Blog post and the parent Comment instance, then redirects back to the post detail page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -487,12 +487,12 @@ This feature was informed by platforms like Reddit and Discord, where users freq
 The logged-in author of the comment (provided the comment has not been orphaned).
 
 #### How It Works
-- The comment author navigates to the post detail page containing their comment.
-- Beneath their comment, the author selects **Edit**.
-- The user is navigated to the comment edit form view which pre-fills a text area with the comment's current content.
-- After editing, the user selects **Save Changes**.
-- The form submits a POST request to edit_comment.
-- The view updates the comment's content with the new text submitted and redirects back to the posts detail page.
+1. The comment author navigates to the post detail page containing their comment.
+2. Beneath their comment, the author selects **Edit**.
+3. The user is navigated to the comment edit form view which pre-fills a text area with the comment's current content.
+4. After editing, the user selects **Save Changes**.
+5. The form submits a POST request to edit_comment.
+6. The view updates the comment's content with the new text submitted and redirects back to the posts detail page.
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
@@ -526,15 +526,15 @@ Authentication is a foundational requirement for community-driven platforms. Pla
 
 #### How It Works
 ##### Registration
-- The guest user selects **Create User** in the top naviation bar.
-- The user enters a unique username and password, and selects **Register User**.
-- The form submits a POST rquest to register.
-- The view creates a User instance, a corresponding Profile instance, and immediately logs in the user before redirecting to the **All Posts** page.
+1. The guest user selects **Create User** in the top naviation bar.
+2. The user enters a unique username and password, and selects **Register User**.
+3. The form submits a POST rquest to register.
+4. The view creates a User instance, a corresponding Profile instance, and immediately logs in the user before redirecting to the **All Posts** page.
 
 ##### Login
-- The user selects **Login** in the top navigation bar.
-- The user enters their username and password, and selects **Log In**
-- The view processes the POST request using Django's authenticate() and login() functions and redirects the user to **All Posts** page.
+1. The user selects **Login** in the top navigation bar.
+2. The user enters their username and password, and selects **Log In**
+3. The view processes the POST request using Django's authenticate() and login() functions and redirects the user to **All Posts** page.
 
 #### Effect on Related Data
 - **Post Owner:** Logging in restores the user's access to their post management controls (such as **Edit Blog** **Create Post**, **Post Settings**, **Profile Settings** and other features).
@@ -564,10 +564,10 @@ This feature was informed by community writing sites like Medium and Tumblr, whe
 Any user (both authenticated users and guest visitors) can view user profiles.
 
 #### How It Works
-- A user clicks an author's username anywhere on teh platform.
-- The profile view retrieves the target User object using get_object_or_404(User, username=username).
-- The view searches for database records associated with the user, explicitly filtering out hidden or severed connections ("Anonymous" and "orphan_account").
-- The view redirects to a user's profile, displaying the user's bio, created posts, and comment history
+1. A user clicks an author's username anywhere on teh platform.
+2. The profile view retrieves the target User object using get_object_or_404(User, username=username).
+3. The view searches for database records associated with the user, explicitly filtering out hidden or severed connections ("Anonymous" and "orphan_account").
+4. The view redirects to a user's profile, displaying the user's bio, created posts, and comment history
 
 #### Effect on Related Data
 - **Post Owner:** Viewing a profile does not alter post ownership or management settings. If a user views any profile, direct navigation links to the author's work are readily accessible.
@@ -599,24 +599,24 @@ This feature was informed by community-focused platforms like Pinterest, Faceboo
 The authenticated owner of the profile.
 
 #### How It Works
-- The logged-in user navigates to **Profile** in the top navigation bar and selects **Profile Settings** from the dropdown.
-- The user is presented with three options: **Edit Profile**, **Change Username**, and **Delete Account**
+1. The logged-in user navigates to **Profile** in the top navigation bar and selects **Profile Settings** from the dropdown.
+2. The user is presented with three options: **Edit Profile**, **Change Username**, and **Delete Account**
 ##### Edit Profile 
-- Selecting **Edit Profile** directs the user to a form containing a text area pre-filled with their current biography text.
-- The user edits the biography text and selects **Save**.
-- The form submits a POST request to profile_settings.
-- The view updates profile.biography with the submitted text and redirects the user back to their profile page.
+1. Selecting **Edit Profile** directs the user to a form containing a text area pre-filled with their current biography text.
+2. The user edits the biography text and selects **Save**.
+3. The form submits a POST request to profile_settings.
+4. The view updates profile.biography with the submitted text and redirects the user back to their profile page.
 ##### Change Username
-- Selecting **Change Username** directs the user to a page where they may enter their desired new username
-- The user selects one of two options: to update all exisitng posts to the new username, or to keep their old username on existing posts.
-- The user selects **Change Username**.
-- The form submits a POST request to change_username.
-- The view updates either all posts or just future posts (based on the user's selection) to the new username and redirects the user back to their profile page.
+1. Selecting **Change Username** directs the user to a page where they may enter their desired new username
+2. The user selects one of two options: to update all exisitng posts to the new username, or to keep their old username on existing posts.
+3. The user selects **Change Username**.
+4. The form submits a POST request to change_username.
+5. The view updates either all posts or just future posts (based on the user's selection) to the new username and redirects the user back to their profile page.
 ##### Delete Account
-- Selecting **Delete Account** directs the user to a page detailing what will happen.
-- The user selects **Delete My Account**.
-- The form sends a POST request to delete_account.
-- The view deletes the User object, logging the user out and redirecting them to the **All Posts** page.
+1. Selecting **Delete Account** directs the user to a page detailing what will happen.
+2. The user selects **Delete My Account**.
+3. The form sends a POST request to delete_account.
+4. The view deletes the User object, logging the user out and redirecting them to the **All Posts** page.
 
 #### Effect on Related Data
 - **Post Owner:** Ownership of authored posts remains intact. If a user changes their username, their posts reflect either the new username or preserve their original name as a static string, depending on the user's choice. If an account is deleted, the user profile page is deleted, preserving past posts on the site with the author name "deleted_user".
