@@ -21,8 +21,11 @@
     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
         
         {% if request.user == comment.author and not comment.is_orphaned %}
+
+            <a href="{% url 'edit_comment' comment.id %}" class="button" style="font-size: 12px; padding: 4px 8px; border-color: #0284c7; color: #0284c7; text-decoration: none; display: inline-block;">
+                Edit
             
-            <form method="post" action="{% url 'anonymize_comment' comment.id %}" style="display: inline;">
+            </a> <form method="post" action="{% url 'anonymize_comment' comment.id %}" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="button" style="font-size: 12px; padding: 4px 8px;">
                     {% if comment.is_anonymous %}Reveal Identity{% else %}Go Anonymous{% endif %}

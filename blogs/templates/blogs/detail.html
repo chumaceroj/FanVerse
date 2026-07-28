@@ -11,7 +11,7 @@
      {% if blog.is_orphaned %}
         <p>By: orphan_account</p>
     {% else %}
-        <p>By: {% if blog.is_anonymous %}Anonymous{% elif not blog.author %}deleted_user{% elif blog.original_author_name %}{{ blog.original_author_name }}{% else %}<a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.get_display_author }}</a>{% endif %}{% for collab in blog.collaborations.all %}{% if collab.role == 'collaborator' %}{% if collab.is_anonymous %}, Anonymous{% elif collab.original_username %}, {{ collab.original_username }}{% else %}, <a href="{% url 'profile' collab.user.username %}" class="midnight-link" style="font-size: 16px;">{{ collab.user.username }}</a>{% endif %}{% endif %}{% endfor %}</p>
+        <p>By: {% if blog.is_anonymous %}Anonymous{% elif not blog.author %}deleted_user{% elif blog.original_author_name %}{{ blog.original_author_name }}{% else %}<a href="{% url 'profile' blog.author.username %}" class="midnight-link" style="font-size: 16px;">{{ blog.get_display_author }}</a>{% endif %}{% for collab in blog.collaborations.all %}{% if collab.role == 'collaborator' %}, {% if collab.user %}{% if collab.is_anonymous %}Anonymous{% elif collab.original_username %}{{ collab.original_username }}{% else %}<a href="{% url 'profile' collab.user.username %}" class="midnight-link" style="font-size: 16px;">{{ collab.get_display_name }}</a>{% endif %}{% else %}{{ collab.get_display_name }}{% endif %}{% endif %}{% endfor %}</p>
     {% endif %}
 
     <p style="margin-top: 16px; font-size: 1.1em;">{{ blog.content }}</p>

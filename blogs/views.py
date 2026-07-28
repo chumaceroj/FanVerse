@@ -162,6 +162,8 @@ def profile(request, username):
     # Get blogs where this user is a collaborator
     collab_blog_ids = Collaboration.objects.filter(
         user=profile_user,
+        # update to filter out null users when searching for collaborator logs
+        user__isnull=False,
         role='collaborator'
     ).values_list('blog_id', flat=True)
     
@@ -373,7 +375,13 @@ def accept_invitation(request, invitation_id):
         invitation = get_object_or_404(Invitation, id=invitation_id)
         if invitation.invited_user != request.user:
             return redirect('notifications')
-        
+
+        # updated: prevent accepting invitations for orphaned posts
+        if invitation.blog.is_orphaned:
+            messages.error(request, "This post was orphaned and is no longer accepting collaborators.")
+            invitation.delete()
+            return redirect('notifications')
+
         invitation.status = 'accepted'
         invitation.save()
         
@@ -446,18 +454,11 @@ def reassign_owner(request, blog_id):
             return redirect('post_settings', blog_id=blog_id)
         
         new_owner = new_owner_collab.user
-        
-        new_owner_collab.role = 'owner'
-        new_owner_collab.save()
-        
-        old_owner_collab, created = Collaboration.objects.get_or_create(
-            blog=blog, user=request.user,
-            defaults={'role': 'owner'}
-        )
-        old_owner_collab.role = 'collaborator'
-        old_owner_collab.save()
+        if not new_owner:
+            return redirect('post_settings', blog_id=blog.id)
         
         blog.transfer(new_owner)
+
         return redirect('blog_detail', blog_id=blog_id)
     return redirect('index')
 

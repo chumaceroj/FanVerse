@@ -46,7 +46,8 @@
             <p style="font-weight: bold; margin-bottom: 8px;">Current Collaborators:</p>
             {% for collab in collaborators %}
             <div style="display: flex; align-items: center; justify-content: space-between; margin: 8px 0;">
-                <span>{{ collab.user.username }}</span>
+                <!-- updated to show delete_user if collab account is deleted -->
+                <span>{% if collab.user %}{{ collab.user.username }}{% else %}deleted_user{% endif %}</span>
                 <form method="post" action="{% url 'remove_collaborator' blog.id collab.id %}" style="margin: 0;">
                     {% csrf_token %}
                     <button type="submit" class="button" style="border-color: crimson; color: crimson;"
