@@ -4,7 +4,6 @@
 ## Description
  
 FanVerse is a Django blogging web application designed around flexible post ownership and user privacy. The platform allows users to invite co-authors, hand off full ownership to another user, or step down to a collaborator role. Authors can post anonymously while retaining editing rights, or permanently orphan a post to unlink their profile while preserving the post's contents for the community. The app also includes a notification center for collaboration invites and transfer requests, threaded comments, and account settings for profile customization and username changes.
-<!-- Describe what FanVerse is and what it does -->
  
 ## Motivation
 
@@ -111,11 +110,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
  
-Then open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
- 
-## Usage
- 
-<!-- Describe how to use the site once it's running -->
+Then open [http://127.0.0.1:8000/blogs](http://127.0.0.1:8000/admin) in your browser.
  
 ## Project Structure
  

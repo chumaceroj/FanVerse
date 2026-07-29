@@ -6,6 +6,7 @@ FanVerse is a Django-based blogging platform built as a research prototype to in
 
 This documentation covers the intended behavior of every feature on the platform, organized into six sections: unlinking mechanisms, the collaboration system, comments, account management, and notifications. Each feature is documented with a description, motivation from observational research, usage instructions, effects on related data, edge cases, and reversibility.
  
+
 ## 2. Unlinking Mechanisms
 ### 2.1 Post Anonymization
  
@@ -25,15 +26,18 @@ Any author, including the owner and any collaborators can anonymize themselves o
 4. The view verifies that `blog.author == request.user` and toggles the `is_anonymous` boolean on the Blog model via the `anonymize()` or `deanonymize()` method.
 5. The `get_display_author()` method detects `is_anonymous == True` and returns "Anonymous" instead of the owner's username.
 6. The post's author line updates on both the homepage and the post detail page. The post is also excluded from the owner's profile page via the `is_anonymous=False` filter in the `profile` view.
+
 #### Effect on Related Data
 - **Collaborators:** Collaborator names are not affected by the owner's anonymization. Each collaborator controls their own anonymization independently.
 - **Comments:** Comments on the post are not affected. Comment authors remain visible regardless of post anonymization status.
 - **Profile links:** The owner's profile link is removed from the post and replaced with "Anonymous." The post no longer appears on the owner's public profile page.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The owner retains full editing access and can still access **Post Settings**.
+
 #### Edge Cases
 - Account deletion process overrides an anonymous author, changing from "Anonymous" to "deleted_user".
 - If an owner anonymizes themselves and the post has collaborators, the collaborators names remain visible.
+
 #### Reversibility
 Anonymization is reversible for posts.
  
@@ -56,6 +60,7 @@ Any active collaborator on a post.
 4. Upon confirmation, the form sends a POST request to the `anonymize_collaborator` view.
 5. The view looks up the user's Collaboration record using `Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator')` and toggles the `is_anonymous` boolean on that record.
 6. The post's author line template checks `collab.is_anonymous` for each collaborator individually. If `True`, that collaborator's name displays as "Anonymous" instead of their username.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Other collaborator names are not affected by one collaborator's anonymization. Each collaborator controls their own anonymization independently.
@@ -63,10 +68,12 @@ Any active collaborator on a post.
 - **Profile links:** The collaborator's profile link is removed from the author line on the post and replaced with "Anonymous." The post no longer appears on the collaborator's public profile page.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The collaborator retains full editing access and can still access collaborator settings (**Edit Blog Post**, **Go Anonymous**, and **Leave Collaboration**).
+
 #### Edge Cases
 - If an anonymous collaborator deletes their account, the collaborator's name is changed to "deleted_user". The collaboration record is preserved in the database to facilitate this name change.
 - If an anonymous collaborator is promoted to primary owner via **Reassign Owner**, ownership transfers to the anonymous collaborator and the collaborator's anonymization state is preserved (name remains "Anonymous").
 - If an anonymous collaborator selects **Leave Collaboration**, their Collaboration record is deleted from the database. The user loses editing access and their name ("Anonymous") is stripped from the post.
+
 #### Reversibility
 Collaborator anonymization is reversible. Collaborators can select **Reveal Identity** at any time on the post detail page.
  
@@ -90,6 +97,7 @@ The logged-in author of the comment.
 5. The view verifies ownership via `comment.can_edit(request.user)` and toggles the `is_anonymous` boolean on the Comment model via the `anonymize()` or `deanonymize()` method.
 6. The `get_display_author()` method detects `is_anonymous == True` and returns "Anonymous" instead of the comment author's username.
 7. The comment is also excluded from the author's profile page via the `is_anonymous=False` filter in the `profile` view.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Collaborator names are not affected by an individual's comment anonymization. Each commenting user and collaborator controls their own anonymization independently.
@@ -97,10 +105,12 @@ The logged-in author of the comment.
 - **Profile links:** The comment author's profile link is removed from the comment header and replaced with "Anonymous." The comment no longer appears on the author's public profile page under their comment history.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The comment author retains full editing privileges over their comment. They can still access **Edit Comment**, **Go Anonymous**/**Reveal Identity**, or **Orphan Comment**.
+
 #### Edge Cases
 - If an anonymous comment author deletes their account, the comment author's name updates to "deleted_user". The comment's contents and reply chain remain intact.
 - If the parent post is orphaned, comment authors retain full ownership and control settings of their individual comments.
 - If a comment is orphaned by its author, it can no longer be anonymized or de-anonymized. Orphaning permanently removes editing privileges and severs the link between a post/comment and its user account.
+
 #### Reversibility
 Comment anonymization is reversible. The author can select **Reveal Identity** on their comment at any time to restore their username and public profile link.
  
@@ -124,6 +134,7 @@ The primary owner of the post.
 5. The `orphan()` method sets `blog.author` to `None`, sets `is_orphaned` to `True`, calls `self.save()`, and then deletes all associated Collaboration records via `self.collaborations.all().delete()`.
 6. The `get_display_author()` method detects `is_orphaned == True` and returns "orphan_account."
 7. The `can_edit()` method returns `False` for all users when `is_orphaned` is `True`, permanently revoking editing access.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's account link is permanently removed and the author name is changed to "orphan_account". The owner loses ownership of the post, removing editing and post settings access.
 - **Collaborators:** All active collaboration records associated with the post are permanently deleted (thereby removing editing privileges). Collaborator names are removed from the author line, and the author display is updated to "By: orphan_account."
@@ -131,11 +142,13 @@ The primary owner of the post.
 - **Profile links:** The post is permanently removed from the primary owner's and all former collaborators' profile pages. The post detail page no longer links to any author profile.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** Editing access is permanently revoked for everyone. Neither the former primary owner nor former collaborators can edit the post or manage settings.
+
 #### Edge Cases
 - When a post with collaborators is orphaned, all collaborator ties are severed alongside the primary owner's tie. The entire author line is replaced by "orphan_account", and collaborators lose editing access and all controls (**Edit Blog Post**, **Go Anonymous**, and **Leave Collaboration**).
 - If a post is orphaned while a collaboration invitation is pending, the invited user cannot join the orphaned work. When the invited user selects **Accept** on their Notifications page, the system displays an error banner reading "This post was orphaned and is no longer accepting collaborators," and automatically deletes the invitation from the database.
 - If a post was anonymized prior to being orphaned, the orphaning state takes precedence ("Anonymous" is replaced with "orphan_account").
 - When a user deletes their account, all orphaned posts will remain under the name "orphan_account" (will not be replaced with "deleted_user").
+
 #### Reversibility
 Post orphaning is irreversible. Once a post is orphaned, the connection between the account and the post is permanently deleted from the database and cannot be restored by the former owner or collaborators.
  
@@ -160,6 +173,8 @@ The logged-in author of the comment.
 6. The `orphan()` method sets `comment.author` to `None`, sets `is_orphaned` to `True`, and calls `self.save()`.
 7. The `get_display_author()` method detects `is_orphaned == True` and returns "orphan_account."
 8. The `can_edit()` method returns `False` when `is_orphaned` is `True`, permanently revoking editing access for the comment.
+
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Collaborator names, visibility, and editing settings are not affected by an individual's orphaned comment.
@@ -167,11 +182,13 @@ The logged-in author of the comment.
 - **Profile links:** The author link is permanently removed from the comment header. The comment no longer appears on the author's profile page under comment history.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** Editing access is permanently revoked for the comment author. The author can no longer edit the comment or toggle anonymization.
+
 #### Edge Cases
 - If a parent comment is orphaned, any child replies nested beneath it remain publicly available and linked to the parent comment. Authors of the reply comments retain full ownership and editing access over their own replies.
 - If a comment was set to "Anonymous" before being orphaned, the orphaning state takes precedence. `get_display_author()` overrides the "Anonymous" label and permanently displays "orphan_account".
 - If a comment author later deletes their account after having orphaned a comment, the orphaned comment remains labelled "orphan_account" (is not changed to "deleted_user").
 - If the parent post itself is orphaned, existing comments can still be orphaned independently by their respective authors.
+
 #### Reversibility
 Comment orphaning is irreversible. Once a comment is orphaned, the database connection between the user account and the comment is permanently severed and cannot be restored.
  
@@ -194,6 +211,7 @@ Any logged-in user can delete their own account from **Profile Settings**.
 4. The user object is deleted, which triggers Django's `CASCADE` behavior to remove the user's Profile, Collaboration entries, pending Invitations, and Transfer Requests.
 5. Posts and comments are preserved because the author field uses `models.SET_NULL`, which sets the author to `null` rather than deleting the content.
 6. The `get_display_author()` method detects the null author and displays "deleted_user."
+
 #### Effect on Related Data
 - **Posts:** All posts remain published. The author name changes to "deleted_user."
 - **Comments:** All comments remain published. The author name changes to "deleted_user."
@@ -204,14 +222,19 @@ Any logged-in user can delete their own account from **Profile Settings**.
 - **Anonymous posts:** If the user had anonymized posts, the display changes from "Anonymous" to "deleted_user."
 - **Preserved usernames:** If the user had previously used **Preserve Old Username**, the frozen username changes to "deleted_user."
 - **Orphaned posts:** Posts that were orphaned before deletion remain as "orphan_account" and are not affected.
+
 #### Edge Cases
-- If the deleted user was the owner of a post with collaborators, collaborators retain editing access but the post has no owner and **Post Settings** are inaccessible.
+- If the deleted user was the owner of a post with collaborators, collaborators retain editing access but the post has no owner and 
+
+**Post Settings** are inaccessible.
 - If the user had anonymized posts, the display overrides from "Anonymous" to "deleted_user."
 - If the user had preserved an old username on past posts, those frozen usernames are replaced with "deleted_user."
 - Orphaned posts are unaffected since the author link was already severed before deletion.
+
 #### Reversibility
 Account deletion is irreversible. Once confirmed, the account and all associated data cannot be recovered.
  
+
 ### 2.7 Direct Ownership Transfer
  
 #### Description
@@ -230,6 +253,7 @@ Only the current post owner can initiate a direct transfer.
 4. Upon confirmation, the `transfer()` method updates `blog.author` to the new user and clears any preserved `original_author_name`.
 5. The Collaboration table is updated to remove the old owner's entry and create or update an owner entry for the new user.
 6. The original owner is immediately redirected and no longer has access to edit or manage the post.
+
 #### Effect on Related Data
 - **Collaborators:** All existing collaborators remain on the post and retain their editing access under the new owner.
 - **Original owner:** The original owner loses all access. They do not become a collaborator.
@@ -237,6 +261,7 @@ Only the current post owner can initiate a direct transfer.
 - **Anonymous status:** If the old owner had anonymized themselves on the post, the post continues to display "Anonymous" for that author. The new owner's name displays normally unless they choose to anonymize themselves.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
 - **Pending invitations:** Existing pending collaboration invitations remain tied to the post.
+
 #### Edge Cases
 - If the recipient is already a collaborator on the post, they are promoted to owner and their collaboration entry is updated. The old owner loses all access.
 - Transferring to yourself is permitted but has no practical effect.
@@ -264,6 +289,7 @@ Only the current post owner can submit an admin-mediated transfer request.
 5. An administrator reviews the request in the Django admin panel and changes the status to "APPROVED" or "DENIED."
 6. If approved, the `TransferRequest.save()` method automatically executes the transfer, updating `blog.author` to the new user, identical to a direct transfer.
 7. Both the requester and the recipient are notified of the outcome and can independently dismiss the notification.
+
 #### Effect on Related Data
 - **Collaborators:** All existing collaborators remain on the post and retain their editing access under the new owner.
 - **Original owner:** The original owner loses all access upon approval. They do not become a collaborator.
@@ -271,12 +297,14 @@ Only the current post owner can submit an admin-mediated transfer request.
 - **Anonymous status:** If the old owner had anonymized themselves on the post, the post continues to display "Anonymous" for that author. The new owner's name displays normally unless they choose to anonymize themselves.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
 - **Pending invitations:** Existing pending collaboration invitations remain tied to the post.
+
 #### Edge Cases
 - Mutliple admin-mediated transfer requests are permitted at a time
 - If the entered username does not exist, an error message is displayed and no request is created.
 - If the owner tries to transfer to themselves, an error message is displayed and no request is created.
 - If the owner directly transfers the post while an admin-mediated request is still pending, the pending request remains in the system.
 - If the request is denied, the post remains unchanged and the owner retains full ownership.
+
 #### Reversibility
 Admin-mediated transfer is irreversible once approved. If denied, no changes are made and the owner can submit a new request.
  
@@ -300,6 +328,7 @@ Only the current post owner can initiate a permission reassignment, and only exi
 5. The old owner's role is updated to "collaborator" using `get_or_create` to handle cases where the owner may not have had an existing Collaboration entry.
 6. The `blog.author` field is updated to the new owner via the `transfer()` method.
 7. The old owner is redirected to the blog detail page, where they now see the collaborator panel instead of **Post Settings**.
+
 #### Effect on Related Data
 - **New owner:** Gains full access to **Post Settings**, including anonymization, transfers, orphaning, inviting collaborators, and reassigning ownership again.
 - **Old owner:** Demoted to collaborator. Retains editing access and can anonymize themselves, but loses access to **Post Settings**. Can leave the collaboration at any time.
@@ -307,11 +336,13 @@ Only the current post owner can initiate a permission reassignment, and only exi
 - **Comments:** All comments remain unchanged.
 - **Anonymous status:** If the old owner had anonymized themselves on the post, they remain anonymous as a collaborator. The new owner's name displays normally unless they choose to anonymize themselves or are already anonymous.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
+
 #### Edge Cases
 - The **Reassign Owner** option only appears in **Post Settings** when at least one collaborator exists on the post.
 - If the owner does not have an existing Collaboration entry (possible for posts created before the collaboration system was added), one is automatically created and then demoted.
 - The new owner can immediately reassign ownership to another collaborator if desired.
 - If the old owner wants to fully disconnect from the post after being demoted, they can use the **Leave Collaboration** button.
+
 #### Reversibility
 Permission reassignment is not directly reversible. The demoted owner would need the new owner to reassign ownership back to them. The demoted owner can also leave the collaboration entirely at any time.
  
@@ -334,6 +365,7 @@ Any logged-in user can change their username from **Profile Settings**.
 3. The system checks that the new username is not already taken.
 4. The `User.username` field is updated and saved.
 5. The user is redirected to their profile under the new username.
+
 #### Effect on Related Data
 - **Posts (preserve):** All existing posts display the old username as unlinked plain text. Future posts display the new username with a profile link.
 - **Posts (update):** All existing and future posts display the new username with a profile link.
@@ -341,14 +373,17 @@ Any logged-in user can change their username from **Profile Settings**.
 - **Collaborations:** Same behavior as posts for both options. The old username shows as unlinked plain text on posts the user collaborates on when **Preserve Old Username** is selected.
 - **Profile:** The profile URL updates to the new username. The old profile URL no longer works.
 - **Profile link on past content (preserve):** Old username text is not clickable and does not link to any profile.
+
 #### Edge Cases
 - If the new username is already taken, an error is displayed and no changes are made.
 - If a user changes their username multiple times using **Preserve Old Username**, the saved name updates to whatever their username was at the time of the most recent change.
 - If a user previously used **Preserve Old Username** and later changes again with **Update All Posts**, the previously saved old usernames are cleared and everything updates to the newest username.
 - The old username becomes available for other users to claim after the change.
+
 #### Reversibility
 Username changes are reversible by changing back to the original username, provided no other user has taken it. However, if **Preserve Old Username** was selected, previously saved old names would need to be manually cleared by choosing **Update All Posts** on a subsequent change.
  
+
 ## 3. Collaboration System
  
 ### 3.1 Inviting Collaborators
@@ -369,11 +404,13 @@ Only the current post owner can invite collaborators.
 4. If validation fails, an error message is displayed explaining why the invite could not be sent.
 5. If a user was previously invited and declined, re-inviting them resets the existing invitation to pending.
 6. Pending invites and current collaborators are listed in the **Invite Collaborator** section of **Post Settings** for the owner's reference.
+
 #### Effect on Related Data
 - **Post:** The post remains unchanged until the invitation is accepted.
 - **Invited user:** Receives a pending notification on their **Notifications** page. No access is granted until they accept.
 - **Existing collaborators:** Unaffected by new invitations.
 - **Notification count:** The invited user's notification count in the navigation bar increases by one.
+
 #### Edge Cases
 - Inviting a username that does not exist displays an error message.
 - Inviting yourself displays an error message.
@@ -381,10 +418,11 @@ Only the current post owner can invite collaborators.
 - Inviting someone who already has a pending invite displays an error message.
 - On the **Create Post** page, invalid usernames in the comma-separated list are silently skipped while valid ones receive invitations.
 - If the post is deleted while invitations are pending, all associated invitations are deleted.
+
 #### Reversibility
 The owner can remove a collaborator after they accept, but cannot retract a pending invitation. The invited user can decline the invitation from their **Notifications** page.
- 
- 
+
+
 ### 3.2 Accepting and Declining Invitations
  
 #### Description
@@ -402,6 +440,7 @@ Only the user who was invited can accept or decline their own invitation.
 3. The user selects **Accept** or **Decline**.
 4. **Accept:** The invitation status is updated to "accepted" and a new Collaboration record is created with the role "collaborator." The user's name appears on the post's author line and they gain editing access.
 5. **Decline:** The invitation status is updated to "declined." No collaboration is created and the notification is removed from the page.
+
 #### Effect on Related Data
 - **Accept — Post:** The user's name is added to the author line alongside the owner and any other collaborators.
 - **Accept — Profile:** The post appears on the new collaborator's profile under their **Posts** tab.
@@ -409,13 +448,16 @@ Only the user who was invited can accept or decline their own invitation.
 - **Accept — Notification count:** The user's notification count decreases by one.
 - **Decline — Post:** No changes. The post remains as-is.
 - **Decline — Invitation:** The invitation status is set to "declined." The owner can re-invite the user, which resets the existing invitation to pending.
+
 #### Edge Cases
 - If the post is deleted before the user responds, the invitation is deleted and no longer appears in notifications.
 - If a user tries to accept or decline an invitation that belongs to another user, they are redirected to the **Notifications** page with no changes made.
 - After declining, the post owner can re-invite the same user, resetting the invitation to pending.
+
 #### Reversibility
 Accepting is reversible — the collaborator can leave at any time via **Leave Collaboration**. Declining is reversible — the owner can re-invite the user.
  
+
 ### 3.3 Collaborator Permissions
  
 #### Description
@@ -445,17 +487,21 @@ Any user with an active "collaborator" role on a post.
   - Transfer or reassign ownership
   - Orphan the post
   - Anonymize or de-anonymize the owner or other collaborators
+
 #### Effect on Related Data
 - **Post:** Collaborators can modify the title and content. All other post data (author, timestamps, anonymization status) is unaffected by collaborator edits.
 - **Other collaborators:** Each collaborator's anonymization and participation is independent. One collaborator's actions do not affect another's visibility or access.
 - **Owner:** The owner's permissions and controls are unaffected by collaborator actions.
+
 #### Edge Cases
 - If the post is orphaned, all collaborator permissions are revoked and the collaborator controls panel is hidden.
 - If the owner deletes their account, collaborators retain editing access but **Post Settings** become inaccessible since there is no owner.
 - If a collaborator is promoted to owner via **Permission Reassignment**, they gain full owner permissions and the previous owner is demoted to collaborator permissions.
+
 #### Reversibility
 Collaborator permissions are granted upon accepting an invitation and revoked upon leaving or being removed. A removed or departed collaborator can regain permissions only through a new invitation from the owner.
  
+
 ### 3.4 Removing Collaborators
  
 #### Description
@@ -473,16 +519,19 @@ Only the current post owner can remove collaborators.
 3. The owner selects **Remove** next to the collaborator they want to remove.
 4. A confirmation dialog asks the owner to confirm the removal.
 5. Upon confirmation, the Collaboration record is deleted and the collaborator's name is removed from the author line.
+
 #### Effect on Related Data
 - **Removed collaborator:** Loses all editing access and collaborator controls. Their name is removed from the author line on all pages.
 - **Comments:** Comments left by the removed collaborator on the post remain intact and visible. The author link on those comments continues to point to their user profile.
 - **Profile:** The post is removed from the former collaborator's profile under their **Posts** tab.
 - **Other collaborators:** Unaffected by the removal.
 - **Post content:** The title, content, and timestamp remain unchanged.
+
 #### Edge Cases
 - The owner cannot remove themselves using this mechanism. Ownership must be transferred via **Direct Transfer**, **Admin-Mediated Transfer**, or **Permission Reassignment**.
 - If an anonymized collaborator is removed, the "Anonymous" entry is removed from the author line.
 - If a removed user is re-invited later and accepts, they start fresh as a new collaborator with default settings (not anonymous).
+
 #### Reversibility
 Removing a collaborator is irreversible. To restore the collaborator, the owner must send a new invitation from **Post Settings**, which the user must accept from their **Notifications** page.
  
@@ -503,6 +552,7 @@ Any active collaborator on a post (excluding the primary owner).
 2. In the collaborator controls section below the post, the collaborator selects **Leave Collaboration**.
 3. The form submits a POST request to `leave_collaboration`.
 4. The view deletes the collaborator's Collaboration instance and redirects back to the post page.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** The leaving collaborator's name is permanently removed from the author line, and the collaborator loses all editing and control access. Other collaborator names, visibility, and editing settings are not affected by an individual collaborator's departure.
@@ -510,10 +560,12 @@ Any active collaborator on a post (excluding the primary owner).
 - **Profile links:** The post is permanently removed from the departing collaborator's profile under posts. The departing collaborator's name and profile link are permanently removed from the author line. All other profiles (primary owner and other collaborators) remain intact.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** Editing access is permanently revoked for the departing collaborator. They no longer have access to collaborator controls (**Edit Post**, **Go Anonymous**, and **Leave Collaboration**).
+
 #### Edge Cases
 - Primary owners cannot use **Leave Collaboration** to leave a post. Ownership must be reassigned via **Reassign Owner**, **Transfer Post**, or **Admin Mediated Transfer**, or the post must be orphaned via **Orphan Post**.
 - If an anonymized collaborator leaves the post, their Collaboration record is deleted, removing "Anonymous" from the author line and clearing all record of their involvement.
 - If a post is orphaned, all Collaboration records are deleted automatically, making **Leave Collaboration** inaccessible.
+
 #### Reversibility
 Leaving a collaboration is irreversible by the user. To rejoin the collaboration, the primary owner must send a new invitation from **Post Settings**, which the user must accept from their **Notifications** page.
  
@@ -536,6 +588,7 @@ Any logged-in user.
 3. To reply to an existing comment, the user selects **Reply** beneath that specific comment, enters text into the reply field, and selects **Submit Reply**.
 4. The form submits a POST request to `add_comment`.
 5. The view creates a Comment record associated with the requesting user, and redirects back to the post page.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Collaborator names, visibility, and editing settings are not affected by a comment posted by a user.
@@ -543,10 +596,12 @@ Any logged-in user.
 - **Profile links:** The new comment displays the author's name linked to their profile. The comment appears under the author's profile in their comment history. 
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The comment author gains editing and management access over their new comment (**Edit Comment**, **Go Anonymous**, and **Orphan Comment**). Neither the post owner nor collaborators gain editing privileges over the new comment.
+
 #### Edge Cases
 - If a user selects **Post Comment** with an empty comment, a message bubble reading "Fill out this field" points to the text box.
 - If a user selects **Post Comment** with a comment only containing whitespace, a comment record is not created in the database and the page reloads without throwing an error.
 - If a post is orphaned, users may still comment freely below the post. If a comment is orphaned, users may still freely reply to the comment. A post's/comment's orphaned state does not restrict reader interaction or discussion threads.
+
 #### Reversibility
 Posting a comment is not directly reversible via an undo action. An author can modify the comment via **Edit**, hide their identity via **Go Anonymous**, or permanently detach their account link via **Orphan**.
  
@@ -568,6 +623,7 @@ Any logged-in user.
 3. The user enters their response and selects **Submit Reply**.
 4. The form submits a POST request to `add_comment`, passing along the hidden `parent_id` field.
 5. The view creates a new Comment record linked to both the Blog post and the parent Comment instance, then redirects back to the post detail page.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Collaborator names, visibility, and editing settings are not affected by a comment posted by a user.
@@ -575,11 +631,13 @@ Any logged-in user.
 - **Profile links:** The reply displays the commenter's name linked to their profile (unless anonymized). The reply appears under the commenter's profile under comment history.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The reply author gains editing and management access over their reply (**Edit Comment**, **Go Anonymous**, and **Orphan Comment**). Parent comment authors, post owners, and collaborators gain no editing control over the new reply.
+
 #### Edge Cases
 - Users can freely reploy to comments authored by "Anonymous" and "orphan_account". The thread structure links to the parent comment ID regardless of whether the parent author's identity is hidden or if the parent is orphaned.
 - If a parent comment is deleted or orphaned, all child replies remain nested beneath it without breaking the thread structure (parent comment's name merely changes to "deleted_user" or "orphan_account").
 - If a user selects **Submit Reply** with an empty comment, a message bubble reading "Fill out this field" points to the text box.
 - If a user selects **Submit Reply** with a comment only containing whitespace, a comment record is not created in the database and the page reloads without throwing an error.
+
 #### Reversibility
 Submitting a threaded reply is not directly reversible. The author can modify their response via **Edit**, hide their identity via **Go Anonymous**, or permanently detach their account link via **Orphan**.
  
@@ -602,6 +660,7 @@ The logged-in author of the comment (provided the comment has not been orphaned)
 4. After editing, the user selects **Save Changes**.
 5. The form submits a POST request to `edit_comment`.
 6. The view updates the comment's content with the new text submitted and redirects back to the post detail page.
+
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
 - **Collaborators:** Collaborator names, visibility, and editing settings are not affected by a comment edit posted by a user.
@@ -609,10 +668,12 @@ The logged-in author of the comment (provided the comment has not been orphaned)
 - **Profile links:** The comment author's profile link in the comment heading remains active. The updated comment text is viewable in the author's profile under comment history.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
 - **Editing privileges:** The comment author retains all management controls (**Edit Comment**, **Go Anonymous**, and **Orphan Comment**). Neither post owners nor collaborators gain editing control over the edited comment.
+
 #### Edge Cases
 - Once a comment is orphaned, a user permanently loses all editing access and management controls.
 - If a comment author sets their comment to "Anonymous", they retain editing access and management controls as long as they remain logged into the account that created it.
 - If a user edits a comment to be completely blank (deleting the pre-existing text) and selects **Save Changes**, the comment will publicly display the author's name and linked profile. The content of the comment disappears entirely.
+
 #### Reversibility
 Editing a comment is reversible through subsequent edits. An author can freely return to the edit form and revise or restore the comment text as many times as desired, provided the comment has not been orphaned. 
  
@@ -639,6 +700,7 @@ Authentication is a foundational requirement for community-driven platforms. Pla
 1. The user selects **Login** in the top navigation bar.
 2. The user enters their username and password, and selects **Log In**.
 3. The view processes the POST request using Django's `authenticate()` and `login()` functions and redirects the user to the **All Posts** page.
+
 #### Effect on Related Data
 - **Post Owner:** Logging in restores the user's access to their post management controls (such as **Edit Blog**, **Create Post**, **Post Settings**, **Profile Settings** and other features).
 - **Collaborators:** Logging in restores access to active collaboration controls on shared posts (**Edit Post**, **Go Anonymous**, and **Leave Collaboration**).
@@ -646,9 +708,11 @@ Authentication is a foundational requirement for community-driven platforms. Pla
 - **Profile links:** Registering establishes a new profile page where the user's authored posts and comment history are aggregated.
 - **Post content:** Account creation and authentication do not directly alter existing blog post titles, body text, or timestamps.
 - **Editing privileges:** Authentication unlocks permission checks across the platform (`can_edit()`, `is_owner()`, etc), enabling authorized users to modify their respective posts and comments.
+
 #### Edge Cases
 - Django's User model requires unique usernames. If a user attempts to register with an existing username, the platform displays an error reading "Username already taken".
 - If a user attempts to log in using a password that does not match the password created during registration, the platform displays an error reading "Invalid credentials. Re-enter your username and password."
+
 #### Reversibility
 Registration creates a permanent User record in the database, though account credentials and profile details can be updated via **Profile Settings**. Users can log out at any time to end their session.
  
@@ -669,6 +733,7 @@ Any user (both authenticated users and guest visitors) can view user profiles.
 2. The profile view retrieves the target User object using `get_object_or_404(User, username=username)`.
 3. The view searches for database records associated with the user, explicitly filtering out hidden or severed connections ("Anonymous" and "orphan_account").
 4. The view redirects to a user's profile, displaying the user's bio, created posts, and comment history.
+
 #### Effect on Related Data
 - **Post Owner:** Viewing a profile does not alter post ownership or management settings. If a user views any profile, direct navigation links to the author's work are readily accessible.
 - **Collaborators:** Shared posts where the profile owner is an active co-author are listed in the **Posts** section on their profile.
@@ -676,14 +741,17 @@ Any user (both authenticated users and guest visitors) can view user profiles.
 - **Profile links:** The profile page URL acts as the target for all public author links displayed across post headers and comment blocks.
 - **Post content:** Viewing a profile does not modify blog post titles, body text, or timestamps.
 - **Editing privileges:** Viewing a profile does not alter editing permissions. If a user views their own profile, administrative and editing shortcuts remain accessible via the respective post detail page.
+
 #### Edge Cases
 - When a user orphans a post or comment, the orphaned posts or comments automatically disappear from the user's profile history.
 - If a post or comment is set to "Anonymous", the post or comment is filtered out of the public profile page.
 - Navigating to a profile URL for a username that does not exist in the database returns a standard 404 Not Found error page (via `get_object_or_404`).
 - If a registered user has not authored any posts or written comments, the profile page displays "No posts yet." under **Posts** and "No comments yet." under **Comments**.
+
 #### Reversibility
 User profiles are dynamic representations of the user's current public contributions. Adding, editing, or orphaning posts and comments will instantly update the content displayed on the profile page when refreshed.
  
+
 ### 5.3 Profile Settings
  
 #### Description
@@ -714,6 +782,7 @@ The authenticated owner of the profile.
 2. The user selects **Delete My Account**.
 3. The form sends a POST request to `delete_account`.
 4. The view deletes the User object, logging the user out and redirecting them to the **All Posts** page.
+
 #### Effect on Related Data
 - **Post Owner:** Ownership of authored posts remains intact. If a user changes their username, their posts reflect either the new username or preserve their original name as a static string, depending on the user's choice. If an account is deleted, the user profile page is deleted, preserving past posts on the site with the author name "deleted_user".
 - **Collaborators:** Active collaboration links are preserved across username updates. If an account is deleted, their name is removed from the posts' author line without deleting the post itself.
@@ -721,11 +790,13 @@ The authenticated owner of the profile.
 - **Profile links:** Changing a username updates the user's profile URL route to `/profile/<new_username>/`. Deleting an account permanently deletes the user's profile page and breaks all associated profile links.
 - **Post content:** Profile edits, username changes, and account deletion do not modify blog post titles, body text, or timestamps.
 - **Editing privileges:** Updating a biography or username preserves all editing access. Deleting an account permanently revokes all editing privileges across all authored/co-authored posts and comments.
+
 #### Edge Cases
 - If a user attempts to change their username to a username that is already taken by another account, the platform displays an error message reading "Username already taken".
 - When an account is deleted, posts and comments are preserved under the "deleted_user" username. Collaboration and Profile records are deleted.
 - Posts or comments previously orphaned by the user remain attributed to "orphan_account" upon account deletion (not changed to "deleted_user").
 - If a user chooses to preserve their old username on existing posts when changing their username, the system saves their old username in `original_author_name` on those existing posts and comments before updating the user account. The `get_display_author()` method checks this field first, ensuring older posts continue displaying the historical name while future posts display the new username.
+
 #### Reversibility
 ##### Edit Profile (Bio): 
 This action is reversible. Biographies can be edited or cleared at any time.
@@ -751,12 +822,16 @@ Any logged-in user who has received a collaboration invitation.
 3. Each invitation has **Accept** and **Decline** buttons.
 4. Selecting **Accept** creates a Collaboration record and removes the notification. Selecting **Decline** updates the invitation status and removes the notification.
 5. The user is redirected back to the **Notifications** page after either action.
+
 #### Effect on Related Data
 - **Notification count:** The count in the navigation bar reflects the number of pending invitations. It decreases when an invitation is accepted or declined.
 - **Post:** Unaffected until the invitation is accepted, at which point the user is added as a collaborator.
+
 #### Edge Cases
 - If the post is orphaned while the invitation is pending, the notification is removed automatically.
 - Only received invitations appear in notifications. Invitations the user has sent are not displayed here.
+
+
 ### 6.2 Transfer Request Updates
  
 #### Description
@@ -771,10 +846,12 @@ The user who submitted the transfer request and the user who was specified as th
 3. Each notification displays the post title, the outcome (approved or denied), and the date.
 4. Each user can select **Dismiss** to clear the notification from their view.
 5. Dismissing is independent — one user dismissing does not affect the other user's notification.
+
 #### Effect on Related Data
 - **Approved:** The transfer is automatically executed upon approval. The post's ownership changes to the recipient, identical to a direct transfer.
 - **Denied:** No changes are made to the post. The owner retains full ownership.
 - **Notification count:** The notification count in the navigation bar, tracks both pending collaboration invitations and admin-mediated transfer requests.
+
 #### Edge Cases
 - If the post is deleted before the admin responds, the transfer request and its notifications are removed.
 - If either the requester or the recipient deletes their account, their notification is removed but the other user's notification remains.
@@ -789,6 +866,7 @@ The navigation bar displays a count of unresolved notifications next to the **No
 1. A context processor runs on every page load and counts the number of pending invitations for the current user.
 2. If the count is greater than zero, it displays as "Notifications (X)" in the navigation bar.
 3. If there are no pending notifications, it displays simply as "Notifications."
+
 #### Edge Cases
 - The count includes pending collaboration invitations and transfer request notifications.
 - The count updates immediately after accepting or declining an invitation.
