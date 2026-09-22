@@ -26,19 +26,10 @@ class TransferRequestAdmin(admin.ModelAdmin):
         for transfer in queryset:
             # only process requests that are pending
             if transfer.status == 'PENDING':
-                # find a user matching the requested username
-                from django.contrib.auth.models import User
-                # search by username
-                new_owner = User.objects.filter(username=transfer.target_user_identifier).first() or \
-                            User.objects.filter(email=transfer.target_user_identifier).first()
-                # if the user (to be transferred to) exists
-                if new_owner:
-                    # user transfer method in model to handle ownership
-                    transfer.blog.transfer(new_owner)
-                    # make the request status approved
-                    transfer.status = 'APPROVED'
-                    # save the transfer request record
-                    transfer.save()
+                # make the request status approved
+                transfer.status = 'APPROVED'
+                # save the transfer request record (triggers self.blog.transfer())
+                transfer.save()
 
     # denying selected transfer requests
     @admin.action(description='Deny selected transfer requests')

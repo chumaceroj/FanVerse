@@ -25,6 +25,8 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
 
     def can_edit(self, user):
         """Checks if the blog can still be edited (cannot be orphaned and must be author or collaborator)"""
+        if not user or not user.is_authenticated:
+            return False
         if self.is_orphaned:
             return False
         if self.author == user:
@@ -76,10 +78,7 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
 
         self.author = new_owner
         self.original_author_name = None
-
-        if is_anon:
-            self.is_anonymous = True
-
+        self.is_anonymous = is_anon
         self.save()
 
     def get_display_author(self):
@@ -88,6 +87,11 @@ class Blog(models.Model): # creates the Blog class and creates a database table 
             return "orphan_account"
         if self.is_anonymous:
             return "Anonymous"
+        # checking individual collaboration anonymity 
+        if self.author:
+            owner_collab = self.collaborations.filter(user=self.author, role='owner').first()
+            if owner_collab and owner_collab.is_anonymous:
+                return "Anonymous"
         if self.author is None: # only reaches if is_orphaned is False
             return "deleted_user"
         if self.original_author_name:
@@ -112,14 +116,17 @@ class Comment(models.Model):
     original_author_name = models.CharField(max_length=200, null=True, blank=True)
     
     def __str__(self):
-        return f"Comment by {self.author if not self.is_orphaned else 'Orphaned'} on {self.blog.title}"
-    
+        author_str = self.author.username if self.author else ('Orphaned' if self.is_orphaned else 'deleted_user')
+        return f"Comment by {author_str} on {self.blog.title}"    
+
     def orphan(self):
         self.author = None
         self.is_orphaned = True
         self.save()
 
     def can_edit(self, user):
+        if not user or not user.is_authenticated:
+            return False
         if self.is_orphaned:
             return False
         if self.author != user:
@@ -137,10 +144,10 @@ class Comment(models.Model):
     def get_display_author(self):
         if self.is_orphaned:
             return "orphan_account"
-        if self.author is None:
-            return "deleted_user"
         if self.is_anonymous:
             return "Anonymous"
+        if self.author is None:
+            return "deleted_user"
         if self.original_author_name:
             return self.original_author_name
         return self.author.username
@@ -163,8 +170,15 @@ class Collaboration(models.Model):
     original_username = models.CharField(max_length=200, null=True, blank=True)  # frozen username when user picks "preserve"
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # prevents duplicate entries
     class Meta:
-        unique_together = ('blog', 'user')  # prevents duplicate entries
+        constraints = [
+        models.UniqueConstraint(
+            fields=['blog', 'user'],
+            condition=models.Q(user__isnull=False),
+            name='unique_active_blog_user'
+        )
+    ]
 
     def __str__(self):
         # update for fallback if user is None
@@ -199,24 +213,29 @@ class Invitation(models.Model):
         unique_together = ('blog', 'invited_user')  # one invite per user per blog
 
     def __str__(self):
-        return f"Invite: {self.invited_user.username} to {self.blog.title} ({self.status})"
-
+        invited_name = self.invited_user.username if self.invited_user else "deleted_user"
+        return f"Invite: {invited_name} to {self.blog.title} ({self.status})"
 
 class TransferRequest(models.Model):
+    # tracking request categories
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Admin Approval'),
+        ('APPROVED', 'Approved'),
+        ('DENIED', 'Denied'),
+        ('DECLINED', 'Declined by User'),
+        ('JOINED', 'Collaborator Joined'),
+        ('LEFT', 'Collaborator Left'),
+        ('INVITE_DECLINED', 'Invitation Declined')
+    ]
+
     # links the blog post being transferred (deletes request if the blog is deleted)
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='transfer_requests')
     # links the current owner requesting the transfer 
     requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_transfer_requests')
     # saves target username entered by the requester
     target_user_identifier = models.CharField(max_length=150)
-    # tracking request categories
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending Admin Approval'),
-        ('APPROVED', 'Approved'),
-        ('DENIED', 'Denied'),
-    ]
     # current status of the request (default is PENDING)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     # saves the time when the request was created
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -235,4 +254,15 @@ class TransferRequest(models.Model):
                         User.objects.filter(email=self.target_user_identifier).first()
             if new_owner and self.blog and self.blog.author != new_owner:
                 self.blog.transfer(new_owner)
+
+                Invitation.objects.filter(blog=self.blog, status='pending').delete()
+
+                # dismiss pending transfer requests for this blog 
+                TransferRequest.objects.filter(
+                    blog=self.blog,
+                    status='PENDING'
+                ).exclude(id=self.id).update(
+                    requester_notified=True,
+                    target_notified=True
+                )
         super().save(*args, **kwargs)

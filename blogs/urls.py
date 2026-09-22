@@ -40,4 +40,8 @@ urlpatterns = [
     path('blog/<int:blog_id>/request-transfer/', views.request_admin_transfer, name='request_admin_transfer'),
     # route for dismissing admin transfer notification
     path('transfer-notification/<int:transfer_id>/clear/', views.clear_transfer_notification, name='clear_transfer_notification'),
+    # routes for accepting/declining transfer requests
+    path('transfer/<int:transfer_id>/accept/', views.accept_transfer_request, name='accept_transfer_request'),
+    path('transfer/<int:transfer_id>/decline/', views.decline_transfer_request, name='decline_transfer_request'),
+
 ]

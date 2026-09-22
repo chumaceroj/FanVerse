@@ -23,6 +23,7 @@ def blog_detail(request, blog_id):
     # sends the blog to the HTML template
     return render(request, 'blogs/detail.html', {'blog': blog})
 
+@login_required
 def edit_blog(request, blog_id):
     blog = get_object_or_404(Blog, id=blog_id) # finds the blog in the database
     # only the author can edit, and only if not orphaned
@@ -47,6 +48,7 @@ def edit_blog(request, blog_id):
     # If GET request, just show the edit form with current data filled in
     return render(request, 'blogs/edit_blog.html', {'blog': blog})
 
+@login_required
 def orphan_blog(request, blog_id):
     # only allows POST requests so someone can't type in a URL to orphan a story
     # they must click the button, which sends POST
@@ -57,9 +59,10 @@ def orphan_blog(request, blog_id):
         if blog.author == request.user: # request.user is whoevers logged in
             blog.orphan()
 
-        # redirect to the blog page after orphaning
-        return redirect('blog_detail', blog_id=blog_id)
-    
+    # redirect to the blog page after orphaning
+    return redirect('blog_detail', blog_id=blog_id)
+
+@login_required
 def anonymize_blog(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
@@ -71,20 +74,57 @@ def anonymize_blog(request, blog_id):
                 blog.anonymize()
     return redirect('blog_detail', blog_id=blog_id)
 
+@login_required
 def transfer_blog(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
         if blog.author == request.user:
             # Get the username they typed in
-            username = request.POST.get('new_owner_username')
+            username = request.POST.get('new_owner_username').strip()
+
+            if not username:
+                messages.error(request, "The username field was left blank.")
+                return redirect('post_settings', blog_id=blog_id)
+
+            if username == request.user.username or username == request.user.email:
+                messages.error(request, "You cannot transfer a post to yourself.")
+                return redirect('post_settings', blog_id=blog_id)
+            
             try:
                 # Try to find that user
                 new_owner = User.objects.get(username=username)
-                blog.transfer(new_owner)
+
+                # check if pending transfer already exists
+                existing_request = TransferRequest.objects.filter(
+                    blog=blog, 
+                    target_user_identifier=new_owner.username, 
+                    status='PENDING'
+                ).first()
+
+                if existing_request:
+                    messages.error(request, "A transfer request is already pending for this user.")
+                    return redirect('post_settings', blog_id=blog_id)
+
+                # transfer request (to approve/deny)
+                TransferRequest.objects.create(
+                    blog=blog,
+                    requester=request.user,
+                    target_user_identifier=new_owner.username,
+                    status='PENDING',
+                    requester_notified=False,
+                    target_notified=False
+                )
+
+                messages.success(request, f"Transfer request sent to {new_owner.username}. Pending their acceptance.")
+                return redirect('post_settings', blog_id=blog_id)
+
             except User.DoesNotExist:
-                # Username doesn't exist — just redirect back
-                pass
-    return redirect('blog_detail', blog_id=blog_id)
+                messages.error(
+                    request,
+                    "The username you entered is not associated with a FanVerse account. Please re-enter the username correctly."
+                )
+                return redirect('post_settings', blog_id=blog_id)
+    return redirect('post_settings', blog_id=blog_id)
 
 @login_required
 def add_comment(request, blog_id):
@@ -116,25 +156,26 @@ def add_comment(request, blog_id):
 
 @login_required
 def anonymize_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-        
-    if comment.can_edit(request.user):
-        if comment.is_anonymous:
-            comment.deanonymize()
-        else:
-            comment.anonymize()
-        
-    return redirect('blog_detail', blog_id=comment.blog.id)
+    if request.method == 'POST':
+        comment = get_object_or_404(Comment, id=comment_id)
+        if comment.can_edit(request.user):
+            if comment.is_anonymous:
+                comment.deanonymize()
+            else:
+                comment.anonymize()
+        return redirect('blog_detail', blog_id=comment.blog.id)
+    return redirect('index')
 
 @login_required     
 def orphan_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-        
-    if comment.can_edit(request.user):
-        comment.orphan()
+    if request.method == 'POST':
+        comment = get_object_or_404(Comment, id=comment_id)
+        if comment.can_edit(request.user):
+            comment.orphan()
+        return redirect('blog_detail', blog_id=comment.blog.id)
+    return redirect('index')
 
-    return redirect('blog_detail', blog_id=comment.blog.id)
-
+@login_required
 def edit_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     if not comment.can_edit(request.user):
@@ -157,6 +198,9 @@ def profile(request, username):
         author=profile_user,
         is_orphaned=False,
         is_anonymous=False
+    ).exclude(
+        collaborations__user=profile_user,
+        collaborations__is_anonymous=True
     ).order_by('-created_at')
     
     # Get blogs where this user is a collaborator
@@ -164,7 +208,8 @@ def profile(request, username):
         user=profile_user,
         # update to filter out null users when searching for collaborator logs
         user__isnull=False,
-        role='collaborator'
+        role='collaborator',
+        is_anonymous=False
     ).values_list('blog_id', flat=True)
     
     collab_blogs = Blog.objects.filter(
@@ -194,6 +239,7 @@ def profile(request, username):
         'comments': comments,
     })
 
+@login_required
 def edit_profile(request, username):
     profile_user = get_object_or_404(User, username=username)
     
@@ -210,12 +256,31 @@ def edit_profile(request, username):
         return redirect('profile', username=username)
     return render(request, 'blogs/edit_profile.html', {'user_profile': user_profile})
 
+@login_required
 def create_blog(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
     if request.method == 'POST':
         title = request.POST.get('title')
         content = request.POST.get('content')
+        collaborator_usernames = request.POST.get('collaborator_usernames', '')
+
+        raw_names = [u.strip() for u in collaborator_usernames.split(',') if u.strip()]
+        unique_names = list(dict.fromkeys(raw_names))
+
+        # check collaborator names before creating anything in the database
+        for username in unique_names:
+            if username == request.user.username:
+                continue
+            if not User.objects.filter(username=username).exists():
+                messages.error(
+                    request,
+                    f"The username '{username}' is not associated with a FanVerse account. Please re-enter correctly."
+                )
+                return render(request, 'blogs/create_blog.html', {
+                    'title': title,
+                    'content': content,
+                    'collaborator_usernames': collaborator_usernames
+                })
+            
         blog = Blog.objects.create(
             title=title,
             content=content,
@@ -227,23 +292,19 @@ def create_blog(request):
             role='owner'
         )
         # send invitations to collaborators if any usernames were entered
-        collaborator_usernames = request.POST.get('collaborator_usernames', '')
-        if collaborator_usernames.strip():
-            for username in collaborator_usernames.split(','):
-                username = username.strip()
-                if not username:
-                    continue
-                try:
-                    invited_user = User.objects.get(username=username)
-                except User.DoesNotExist:
-                    continue
-                if invited_user == request.user:
-                    continue
+        for username in unique_names:
+            if username == request.user.username:
+                continue
+            try:
+                invited_user = User.objects.get(username=username)
                 Invitation.objects.create(
                     blog=blog,
                     invited_by=request.user,
                     invited_user=invited_user,
                 )
+            except User.DoesNotExist:
+                continue
+
         return redirect('blog_detail', blog_id=blog.id)
     return render(request, 'blogs/create_blog.html')
 
@@ -280,14 +341,12 @@ def register_user(request):
         return redirect('index')
     return render(request, 'blogs/register.html')
 
+@login_required
 def profile_settings(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
     return render(request, 'blogs/profile_settings.html')
 
+@login_required
 def delete_account(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
     
     if request.method == 'POST':
         user = request.user
@@ -296,9 +355,8 @@ def delete_account(request):
         return redirect('index')
     return render(request, 'blogs/delete_account.html')
 
+@login_required
 def change_username(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
     
     if request.method == 'POST':
         new_username = request.POST.get('new_username')
@@ -323,6 +381,7 @@ def change_username(request):
         return redirect('profile', username=new_username)
     return render(request, 'blogs/change_username.html')
 
+@login_required
 def post_settings(request, blog_id):
     blog = get_object_or_404(Blog, id=blog_id)
     if not blog.is_owner(request.user):
@@ -337,25 +396,40 @@ def post_settings(request, blog_id):
         'pending_invites': pending_invites,
     })
 
+@login_required
 def invite_collaborator(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
         if not blog.is_owner(request.user):
             return redirect('blog_detail', blog_id=blog_id)
         
-        username = request.POST.get('collaborator_username')
+        username = request.POST.get('collaborator_username').strip()
+
+        if not username:
+            messages.error(request, "Please enter a username.")
+            return redirect('post_settings', blog_id=blog_id)
+
+        if username == request.user.username:
+            messages.error(request, "You cannot invite yourself as a collaborator.")
+            return redirect('post_settings', blog_id=blog_id)
+
         try:
             invited_user = User.objects.get(username=username)
         except User.DoesNotExist:
+            messages.error(
+                request,
+                "The username you entered is not associated with a FanVerse account. Please re-enter the username correctly."
+            )
+            return redirect('post_settings', blog_id=blog_id)
+
+        if Collaboration.objects.filter(blog=blog, user=invited_user).exists():
+            messages.error(request, "This user is already a collaborator.")
             return redirect('post_settings', blog_id=blog_id)
         
-        if invited_user == request.user:
-            return redirect('post_settings', blog_id=blog_id)
-        if Collaboration.objects.filter(blog=blog, user=invited_user).exists():
-            return redirect('post_settings', blog_id=blog_id)
         existing_invite = Invitation.objects.filter(blog=blog, invited_user=invited_user).first()
         if existing_invite:
             if existing_invite.status == 'pending':
+                messages.error(request, "An invitation is already pending for this user.")
                 return redirect('post_settings', blog_id=blog_id)
             # if previously declined or accepted, reset to pending
             existing_invite.status = 'pending'
@@ -370,16 +444,16 @@ def invite_collaborator(request, blog_id):
         return redirect('post_settings', blog_id=blog_id)
     return redirect('index')
 
-
+@login_required
 def accept_invitation(request, invitation_id):
     if request.method == 'POST':
         invitation = get_object_or_404(Invitation, id=invitation_id)
         if invitation.invited_user != request.user:
             return redirect('notifications')
 
-        # updated: prevent accepting invitations for orphaned posts
-        if invitation.blog.is_orphaned:
-            messages.error(request, "This post was orphaned and is no longer accepting collaborators.")
+        # prevent accepting invitations for orphaned posts
+        if invitation.blog.is_orphaned or invitation.invited_by is None or invitation.blog.author is None:
+            messages.error(request, "This post or its author no longer exists. You cannot accept this invitation.")
             invitation.delete()
             return redirect('notifications')
 
@@ -391,10 +465,28 @@ def accept_invitation(request, invitation_id):
             user=request.user,
             role='collaborator'
         )
+
+        # notify existing owner and collaborators that a new user joined
+        existing_collaborators = Collaboration.objects.filter(
+            blog=invitation.blog
+        ).exclude(user=request.user)
+
+        for collab in existing_collaborators:
+            if collab.user:
+                # store system notification for team members
+                TransferRequest.objects.create(
+                    blog=invitation.blog,
+                    requester=request.user,
+                    target_user_identifier=collab.user.username,
+                    status='JOINED',  
+                    requester_notified=True,
+                    target_notified=False
+                )
+    
         return redirect('notifications')
     return redirect('notifications')
 
-
+@login_required
 def decline_invitation(request, invitation_id):
     if request.method == 'POST':
         invitation = get_object_or_404(Invitation, id=invitation_id)
@@ -403,10 +495,22 @@ def decline_invitation(request, invitation_id):
         
         invitation.status = 'declined'
         invitation.save()
+
+        # notify the user who sent the invite that it was declined
+        if invitation.invited_by:
+            TransferRequest.objects.create(
+                blog=invitation.blog,
+                requester=request.user,
+                target_user_identifier=invitation.invited_by.username,
+                status='INVITE_DECLINED',
+                requester_notified=True,
+                target_notified=False
+            )
+
         return redirect('notifications')
     return redirect('notifications')
 
-
+@login_required
 def remove_collaborator(request, blog_id, collaboration_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
@@ -419,27 +523,47 @@ def remove_collaborator(request, blog_id, collaboration_id):
         return redirect('post_settings', blog_id=blog_id)
     return redirect('index')
 
-
+@login_required
 def leave_collaboration(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
         collaboration = Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator').first()
         if collaboration:
             collaboration.delete()
+
+            # notify remaining collaborators that this user left
+            remaining_collaborators = Collaboration.objects.filter(blog=blog)
+            for collab in remaining_collaborators:
+                if collab.user:
+                    TransferRequest.objects.create(
+                        blog=blog,
+                        requester=request.user,
+                        target_user_identifier=collab.user.username,
+                        status='LEFT', 
+                        requester_notified=True,
+                        target_notified=False
+                    )
+
         return redirect('blog_detail', blog_id=blog_id)
     return redirect('index')
 
-
+@login_required
 def anonymize_collaborator(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
-        collab = Collaboration.objects.filter(blog=blog, user=request.user, role='collaborator').first()
+        collab = Collaboration.objects.filter(blog=blog, user=request.user).first()
+
         if collab:
             collab.is_anonymous = not collab.is_anonymous
             collab.save()
+            
+            # if the user toggling anonymity is the blog owner, sync main blog setting
+            if blog.author == request.user:
+                blog.is_anonymous = collab.is_anonymous
+                blog.save()
     return redirect('blog_detail', blog_id=blog_id)
 
-
+@login_required
 def reassign_owner(request, blog_id):
     if request.method == 'POST':
         blog = get_object_or_404(Blog, id=blog_id)
@@ -451,17 +575,71 @@ def reassign_owner(request, blog_id):
             new_owner_collab = Collaboration.objects.get(
                 id=new_owner_collab_id, blog=blog, role='collaborator'
             )
-        except Collaboration.DoesNotExist:
+        except (Collaboration.DoesNotExist, ValueError):
+            messages.error(request, "Selected collaborator could not be found.")
             return redirect('post_settings', blog_id=blog_id)
         
         new_owner = new_owner_collab.user
         if not new_owner:
-            return redirect('post_settings', blog_id=blog.id)
-        
-        blog.transfer(new_owner, keep_old_owner=True)
+            messages.error(request, "Cannot assign ownership to a deleted user.")
+            return redirect('post_settings', blog_id=blog_id)
 
-        return redirect('blog_detail', blog_id=blog_id)
+        # transfer request (to accept/decline)
+        TransferRequest.objects.create(
+            blog=blog,
+            requester=request.user,
+            target_user_identifier=new_owner.username,
+            status='PENDING',
+            requester_notified=False,
+            target_notified=False
+        )
+        
+        messages.success(request, f"Ownership reassignment request sent to {new_owner.username}.")
+        return redirect('post_settings', blog_id=blog_id)
+
     return redirect('index')
+
+@login_required
+def accept_transfer_request(request, transfer_id):
+    if request.method == 'POST':
+        transfer = get_object_or_404(
+            TransferRequest, 
+            id=transfer_id, 
+            target_user_identifier=request.user.username,
+            status='PENDING'
+        )
+        
+        transfer.status = 'APPROVED'
+        transfer.requester_notified = False
+        # notify original requester that it was accepted
+        transfer.target_notified = True
+        transfer.save()
+
+        messages.success(request, f"You are now the owner of '{transfer.blog.title}'.")
+        return redirect('notifications')
+    return redirect('notifications')
+
+
+@login_required
+def decline_transfer_request(request, transfer_id):
+    if request.method == 'POST':
+        transfer = get_object_or_404(
+            TransferRequest, 
+            id=transfer_id, 
+            target_user_identifier=request.user.username,
+            status='PENDING'
+        )
+        
+        transfer.status = 'DECLINED'
+        transfer.requester_notified = False
+        # notify requester that it was declined
+        transfer.target_notified = True
+        transfer.save()
+
+        messages.info(request, f"You declined the transfer request for '{transfer.blog.title}'.")
+        return redirect('notifications')
+    return redirect('notifications')
+
 
 @login_required
 def notifications(request):
@@ -471,15 +649,22 @@ def notifications(request):
         status='pending'
     ).order_by('-created_at')
 
-    # all approved/denied transfer requests that haven't been dismissed by this user
+    # pending transfer/reassign requests sent to this user (needs accept/cecline buttons)
+    pending_transfers = TransferRequest.objects.filter(
+        target_user_identifier=request.user.username,
+        status='PENDING'
+    ).order_by('-created_at')
+
+    # all approved/denied transfer requests that haven't been dismissed by this user (accepted, declined, member joined/left)
     transfer_notifications = TransferRequest.objects.filter(
         (Q(requester=request.user, requester_notified=False) |
          Q(target_user_identifier=request.user.username, target_notified=False)),
-        status__in=['APPROVED', 'DENIED']
+        status__in=['APPROVED', 'DENIED', 'DECLINED', 'JOINED', 'LEFT', 'INVITE_DECLINED']
     ).order_by('-created_at')
     
     return render(request, 'blogs/notifications.html', {
         'pending_invitations': pending_invitations,
+        'pending_transfers': pending_transfers,
         'transfer_notifications' : transfer_notifications,
     })
 
@@ -531,7 +716,7 @@ def request_admin_transfer(request, blog_id):
         if not user_exists:
             messages.error(
                 request,
-                "The username you entered is not associated with a FanVerse acount. Please re-enter the username correctly."
+                "The username you entered is not associated with a FanVerse account. Please re-enter the username correctly."
             )
             return redirect('post_settings', blog_id=blog.id)
 
