@@ -43,5 +43,6 @@ urlpatterns = [
     # routes for accepting/declining transfer requests
     path('transfer/<int:transfer_id>/accept/', views.accept_transfer_request, name='accept_transfer_request'),
     path('transfer/<int:transfer_id>/decline/', views.decline_transfer_request, name='decline_transfer_request'),
+    path('admin-transfer/<int:transfer_id>/cancel/', views.cancel_admin_transfer, name='cancel_admin_transfer'),
 
 ]

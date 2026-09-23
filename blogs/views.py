@@ -390,10 +390,33 @@ def post_settings(request, blog_id):
     collaborators = Collaboration.objects.filter(blog=blog).exclude(role='owner')
     pending_invites = Invitation.objects.filter(blog=blog, status='pending')
     
+    # Admin-mediated transfer data
+    pending_admin_transfer = TransferRequest.objects.filter(
+        blog=blog, transfer_type='admin_mediated', status='PENDING'
+    ).first()
+    
+    # Most recent approved transfer (only the last one)
+    last_approved_transfer = TransferRequest.objects.filter(
+        blog=blog, transfer_type='admin_mediated', status='APPROVED'
+    ).order_by('-created_at').first()
+    
+    # All denied transfers under current owner
+    denied_transfers = TransferRequest.objects.filter(
+        blog=blog, transfer_type='admin_mediated', status='DENIED',
+        requester=request.user
+    ).order_by('-created_at')
+    
+    # Lock settings if admin-mediated transfer is pending
+    settings_locked = pending_admin_transfer is not None
+    
     return render(request, 'blogs/post_settings.html', {
         'blog': blog,
         'collaborators': collaborators,
         'pending_invites': pending_invites,
+        'pending_admin_transfer': pending_admin_transfer,
+        'last_approved_transfer': last_approved_transfer,
+        'denied_transfers': denied_transfers,
+        'settings_locked': settings_locked,
     })
 
 @login_required
@@ -731,9 +754,26 @@ def request_admin_transfer(request, blog_id):
             blog=blog,
             # set the logged-in user as requester and save the requested target username
             requester=request.user,
-            target_user_identifier=target_identifier
+            target_user_identifier=target_identifier,
+            transfer_type='admin_mediated'
         )
             # show the success message to the user
         messages.success(request, "Request has been submitted successfully. You will receive a response in approximately 48 hours.")
 
     return redirect('post_settings', blog_id=blog.id)
+
+@login_required
+def cancel_admin_transfer(request, transfer_id):
+    if request.method == 'POST':
+        transfer = get_object_or_404(
+            TransferRequest,
+            id=transfer_id,
+            requester=request.user,
+            transfer_type='admin_mediated',
+            status='PENDING'
+        )
+        blog_id = transfer.blog.id
+        transfer.delete()
+        messages.success(request, "Admin-mediated transfer request has been cancelled.")
+        return redirect('post_settings', blog_id=blog_id)
+    return redirect('index')

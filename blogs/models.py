@@ -223,6 +223,7 @@ class TransferRequest(models.Model):
         ('APPROVED', 'Approved'),
         ('DENIED', 'Denied'),
         ('DECLINED', 'Declined by User'),
+        ('CANCELLED', 'Cancelled by Owner'),
         ('JOINED', 'Collaborator Joined'),
         ('LEFT', 'Collaborator Left'),
         ('INVITE_DECLINED', 'Invitation Declined')
@@ -238,6 +239,8 @@ class TransferRequest(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     # saves the time when the request was created
     created_at = models.DateTimeField(auto_now_add=True)
+    # indicates type of transfer (admin or direct)
+    transfer_type = models.CharField(max_length=20, default='direct', choices=[('direct', 'Direct'), ('admin_mediated', 'Admin Mediated')])
 
     # tracks notification dismissal for each user independently 
     requester_notified = models.BooleanField(default=False)
