@@ -308,11 +308,12 @@ Only the current post owner can submit an admin-mediated transfer request.
 - **Pending invitations:** Existing pending collaboration invitations remain tied to the post.
 
 #### Edge Cases
-- Mutliple admin-mediated transfer requests are permitted at a time
+- Only one admin-mediated transfer request can be pending at a time. While a request is pending, **Post Settings** are locked and no additional transfer requests (direct, admin-mediated, or permission reassignment) can be submitted.
 - If the entered username does not exist, an error message is displayed and no request is created.
-- If the owner tries to transfer to themselves, an error message is displayed and no request is created.
-- If the owner directly transfers the post while an admin-mediated request is still pending, the pending request remains in the system.
-- If the request is denied, the post remains unchanged and the owner retains full ownership.
+- If the owner tries to transfer to themselves, an error message is displayed: "You cannot transfer a post to yourself."
+- If the username field is left blank, an error message is displayed: "The username field was left blank. Please enter a username to continue."
+- The owner can cancel a pending admin-mediated transfer request at any time via the **Cancel Request** button in the **Admin Mediated Transfer Settings** section. Cancelling deletes the `TransferRequest` from the database, unlocks **Post Settings**, and displays a success message.
+- If the request is denied, the post remains unchanged, the owner retains full ownership, and **Post Settings** are unlocked. Denied requests are recorded and displayed in the **Admin Mediated Transfer Settings** section under **Denied Requests**.
 
 #### Admin Mediated Transfer Settings
 The **Admin Mediated Transfer Settings** section within **Post Settings** provides a history view of all admin-mediated transfer activity for the post. It displays three categories of information:
@@ -358,9 +359,9 @@ Only the current post owner can initiate a permission reassignment, and only exi
 
 #### Edge Cases
 - The **Reassign Owner** option only appears in **Post Settings** when at least one collaborator exists on the post.
-- If the owner does not have an existing Collaboration entry (possible for posts created before the collaboration system was added), one is automatically created and then demoted.
-- The new owner can immediately reassign ownership to another collaborator if desired.
-- If the old owner wants to fully disconnect from the post after being demoted, they can use the **Leave Collaboration** button.
+- If the selected collaborator's user account has been deleted (user is `null`), an error message is displayed: "Cannot assign ownership to a deleted user."
+- If the collaborator accepts, the new owner can immediately reassign ownership to another collaborator if desired.
+- If the collaborator declines, the post remains unchanged and the owner can submit a new reassignment request.
 
 #### Reversibility
 Permission reassignment is not directly reversible once accepted. The original owner would need the new owner to transfer ownership back to them. Unlike previous versions, the original owner does not remain as a collaborator after the transfer is accepted.
@@ -435,7 +436,7 @@ Only the current post owner can invite collaborators.
 - Inviting yourself displays an error message.
 - Inviting someone who is already a collaborator displays an error message.
 - Inviting someone who already has a pending invite displays an error message.
-- On the **Create Post** page, invalid usernames in the comma-separated list are silently skipped while valid ones receive invitations.
+- - On the **Create Post** page, all collaborator usernames are validated before the post is created. If any username does not exist, an error message is displayed ("The username '[username]' is not associated with a FanVerse account. Please re-enter correctly.") and the post is not created. The form re-renders with the previously entered title, content, and collaborator usernames preserved so the user can correct the entry. Duplicate usernames in the comma-separated list are automatically deduplicated.
 - If the post is deleted while invitations are pending, all associated invitations are deleted.
 
 #### Reversibility
