@@ -208,14 +208,14 @@ Any logged-in user can delete their own account from **Profile Settings**.
 1. The user navigates to **Profile Settings** and selects **Delete Account**.
 2. A confirmation page warns that the action is permanent and irreversible.
 3. Upon confirmation, the user is logged out via Django's `logout()` function.
-4. The user object is deleted, which triggers Django's `CASCADE` behavior to remove the user's Profile, Collaboration entries, pending Invitations, and Transfer Requests.
+4. The user object is deleted, which triggers Django's `CASCADE` behavior to remove the user's Profile, pending Invitations, and Transfer Requests. Collaboration records are preserved because the `user` field uses `models.SET_NULL`, setting the user reference to `null` rather than deleting the record. The `get_display_name()` method detects the null user and displays "deleted_user."
 5. Posts and comments are preserved because the author field uses `models.SET_NULL`, which sets the author to `null` rather than deleting the content.
 6. The `get_display_author()` method detects the null author and displays "deleted_user."
 
 #### Effect on Related Data
 - **Posts:** All posts remain published. The author name changes to "deleted_user."
 - **Comments:** All comments remain published. The author name changes to "deleted_user."
-- **Collaborations:** The user is removed from all collaborations. Remaining collaborators can still edit posts they collaborate on.
+- **Collaborations:** The user's Collaboration records are preserved in the database with the `user` field set to `null`. The collaborator's name displays as "deleted_user" on the post's author line. Remaining collaborators can still edit posts they collaborate on.
 - **Pending invitations:** All sent and received invitations are deleted.
 - **Transfer requests:** All pending transfer requests submitted by the user are deleted.
 - **Profile:** The user's profile and biography are permanently deleted.
@@ -238,7 +238,7 @@ Account deletion is irreversible. Once confirmed, the account and all associated
 ### 2.7 Direct Ownership Transfer
  
 #### Description
-Direct ownership transfer allows the current owner of a post to immediately transfer full ownership to any registered user by entering their username. Once transferred, the new user becomes the primary owner with full access to editing and **Post Settings**, while the original owner loses all access to the post.
+Direct ownership transfer allows the current owner of a post to initiate a transfer of ownership to any registered user by entering their username. Unlike previous versions where the transfer was immediate, the system now creates a pending transfer request. The recipient is notified and must accept or decline the request from their **Notifications** page. Once accepted, the new user becomes the primary owner with full access to editing and **Post Settings**, while the original owner loses all access to the post.
  
 #### Motivation
 This feature was informed by our observation of direct transfer mechanisms across several platforms including YouTube (channel transfer), GitHub (repository transfer), Blogspot (blog transfer), and Shopify (store/blog transfer). These platforms offer a built-in "transfer ownership" feature where ownership is moved in a single action. Our implementation follows this model, providing a one-step transfer directly from **Post Settings** without requiring admin involvement or a collaboration relationship.
@@ -250,17 +250,23 @@ Only the current post owner can initiate a direct transfer.
 1. The owner navigates to **Post Settings** and locates the **Transfer Post** section.
 2. The owner enters the username of the intended recipient.
 3. A confirmation dialog warns that the action is permanent and the owner will lose all privileges.
-4. Upon confirmation, the `transfer()` method updates `blog.author` to the new user and clears any preserved `original_author_name`.
-5. The Collaboration table is updated to remove the old owner's entry and create or update an owner entry for the new user.
-6. The original owner is immediately redirected and no longer has access to edit or manage the post.
+4. Upon confirmation, the form sends a POST request to the `transfer_blog` view.
+5. The view validates that the username exists, is not the owner themselves, and does not already have a pending transfer request for this post.
+6. A `TransferRequest` object is created in the database with a status of "PENDING."
+7. A success message displays: "Transfer request sent to [username]. Pending their acceptance."
+8. The recipient sees the pending transfer request on their **Notifications** page with **Accept Ownership** and **Decline** buttons.
+9. If the recipient selects **Accept Ownership**, the `TransferRequest` status is set to "APPROVED," which triggers the `TransferRequest.save()` method to automatically execute the transfer via `blog.transfer(new_owner)`. The old owner's Collaboration record is deleted and the new owner is assigned.
+10. If the recipient selects **Decline**, the `TransferRequest` status is set to "DECLINED." No changes are made to the post. The original owner is notified of the decline.
 
 #### Effect on Related Data
 - **Collaborators:** All existing collaborators remain on the post and retain their editing access under the new owner.
-- **Original owner:** The original owner loses all access. They do not become a collaborator.
+- **Original owner:** Upon acceptance, the original owner loses all access. They do not become a collaborator. The original owner is notified of the outcome (accepted or declined) on their **Notifications** page.
 - **Comments:** All comments remain unchanged.
-- **Anonymous status:** If the old owner had anonymized themselves on the post, the post continues to display "Anonymous" for that author. The new owner's name displays normally unless they choose to anonymize themselves.
+- **Anonymous status:** If the new owner was previously a collaborator with an anonymous state, that anonymization state is preserved upon becoming owner. The new owner's name displays normally unless they were already anonymous.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
-- **Pending invitations:** Existing pending collaboration invitations remain tied to the post.
+- **Pending invitations:** Upon approval, all pending collaboration invitations for this post are deleted.
+- **Pending transfer requests:** Upon approval, all other pending transfer requests for this post are dismissed (marked as notified for both parties).
+- **Notifications:** The recipient receives a pending transfer notification with **Accept Ownership** and **Decline** buttons. After the recipient responds, the original owner receives a notification indicating whether the transfer was accepted or declined.
 
 #### Edge Cases
 - If the recipient is already a collaborator on the post, they are promoted to owner and their collaboration entry is updated. The old owner loses all access.
@@ -285,10 +291,13 @@ Only the current post owner can submit an admin-mediated transfer request.
 1. The owner navigates to **Post Settings** and locates the **Admin Mediated Transfer** section.
 2. The owner enters the username of the intended recipient.
 3. The system validates that the username exists and that the owner is not transferring to themselves.
-4. A `TransferRequest` object is created in the database with a status of "PENDING."
-5. An administrator reviews the request in the Django admin panel and changes the status to "APPROVED" or "DENIED."
-6. If approved, the `TransferRequest.save()` method automatically executes the transfer, updating `blog.author` to the new user, identical to a direct transfer.
-7. Both the requester and the recipient are notified of the outcome and can independently dismiss the notification.
+4. A `TransferRequest` object is created in the database with a status of "PENDING" and a `transfer_type` of "admin_mediated."
+5. A success message displays: "Request has been submitted successfully. You will receive a response in approximately 48 hours."
+6. While the admin-mediated transfer request is pending, **Post Settings** are locked. All sections except the post editor and the **Admin Mediated Transfer Settings** section are grayed out and non-interactive. A warning banner displays: "Settings are locked while an admin-mediated transfer request is pending. You may only edit the post or cancel the pending transfer below."
+7. The pending request is visible in the **Admin Mediated Transfer Settings** section of **Post Settings**, where the owner can view the target username, submission date, and cancel the request via a **Cancel Request** button.
+8. An administrator reviews the request in the Django admin panel and changes the status to "APPROVED" or "DENIED."
+9. If approved, the `TransferRequest.save()` method automatically executes the transfer via `blog.transfer(new_owner)`, updating `blog.author` to the new user, identical to a direct transfer. All other pending transfer requests for this post are dismissed, and all pending collaboration invitations are deleted.
+10. Both the requester and the recipient are notified of the outcome on their **Notifications** page and can independently dismiss the notification.
 
 #### Effect on Related Data
 - **Collaborators:** All existing collaborators remain on the post and retain their editing access under the new owner.
@@ -305,6 +314,14 @@ Only the current post owner can submit an admin-mediated transfer request.
 - If the owner directly transfers the post while an admin-mediated request is still pending, the pending request remains in the system.
 - If the request is denied, the post remains unchanged and the owner retains full ownership.
 
+#### Admin Mediated Transfer Settings
+The **Admin Mediated Transfer Settings** section within **Post Settings** provides a history view of all admin-mediated transfer activity for the post. It displays three categories of information:
+- **Pending Request:** Shows the target username and submission date of the current pending request, with a **Cancel Request** button.
+- **Last Transfer:** Shows the most recent approved transfer, including the original and new owner usernames and completion date.
+- **Denied Requests:** Lists all denied transfer requests submitted by the current owner, including the target username and denial date.
+
+If no admin-mediated transfer activity exists, the section displays: "No admin-mediated transfer history."
+
 #### Reversibility
 Admin-mediated transfer is irreversible once approved. If denied, no changes are made and the owner can submit a new request.
  
@@ -312,7 +329,7 @@ Admin-mediated transfer is irreversible once approved. If denied, no changes are
 ### 2.9 Permission Reassignment
  
 #### Description
-Permission reassignment allows the current owner of a post to promote an existing collaborator to owner. The original owner is automatically demoted to a collaborator role, losing access to **Post Settings** and owner-only features while retaining editing access. This mechanism requires the recipient to already be a collaborator on the post, distinguishing it from direct transfer.
+Permission reassignment allows the current owner of a post to request an ownership transfer to an existing collaborator on the post. The system creates a pending transfer request that the collaborator must accept or decline from their **Notifications** page. Upon acceptance, the selected collaborator becomes the new primary owner with full access to **Post Settings**, while the original owner loses all access to the post. This mechanism requires the recipient to already be a collaborator on the post, distinguishing it from direct transfer.
  
 #### Motivation
 This feature was informed by our observation of permission reassignment patterns across platforms like Google Drive (document transfer), Discord (server transfer), and AO3 (co-creation transfer). Users manually give someone else full or owner-level access through invitation or collaboration, then remove or demote their own role. Our implementation formalizes this pattern by allowing the owner to promote a collaborator to owner directly from **Post Settings**, with the demotion happening automatically.
@@ -323,19 +340,21 @@ Only the current post owner can initiate a permission reassignment, and only exi
 #### How It Works
 1. The owner navigates to **Post Settings** and locates the **Reassign Owner** section, which only appears if the post has at least one collaborator.
 2. The owner selects a collaborator from a dropdown menu.
-3. A confirmation dialog warns that they will lose owner privileges and become a collaborator.
-4. Upon confirmation, the selected collaborator's role is updated to "owner" in the Collaboration table.
-5. The old owner's role is updated to "collaborator" using `get_or_create` to handle cases where the owner may not have had an existing Collaboration entry.
-6. The `blog.author` field is updated to the new owner via the `transfer()` method.
-7. The old owner is redirected to the blog detail page, where they now see the collaborator panel instead of **Post Settings**.
+3. A confirmation dialog warns that they will lose owner privileges.
+4. Upon confirmation, a `TransferRequest` object is created in the database with a status of "PENDING."
+5. A success message displays: "Ownership reassignment request sent to [username]."
+6. The selected collaborator sees the pending request on their **Notifications** page with **Accept Ownership** and **Decline** buttons.
+7. If the collaborator selects **Accept Ownership**, the `TransferRequest` status is set to "APPROVED," which triggers the `TransferRequest.save()` method to execute the transfer via `blog.transfer(new_owner)`. The old owner's Collaboration record is deleted and the new owner is assigned as `blog.author`.
+8. If the collaborator selects **Decline**, the `TransferRequest` status is set to "DECLINED." No changes are made to the post. The original owner is notified of the decline.
 
 #### Effect on Related Data
-- **New owner:** Gains full access to **Post Settings**, including anonymization, transfers, orphaning, inviting collaborators, and reassigning ownership again.
-- **Old owner:** Demoted to collaborator. Retains editing access and can anonymize themselves, but loses access to **Post Settings**. Can leave the collaboration at any time.
+- **New owner:** Upon acceptance, gains full access to **Post Settings**, including anonymization, transfers, orphaning, inviting collaborators, and reassigning ownership again. If the new owner was previously anonymous as a collaborator, their anonymization state is preserved.
+- **Old owner:** Upon acceptance, the old owner loses all access to the post. Their Collaboration record is deleted and they do not remain as a collaborator.
 - **Other collaborators:** Unaffected. They retain their existing roles and editing access.
 - **Comments:** All comments remain unchanged.
-- **Anonymous status:** If the old owner had anonymized themselves on the post, they remain anonymous as a collaborator. The new owner's name displays normally unless they choose to anonymize themselves or are already anonymous.
+- **Anonymous status:** If the new owner had anonymized themselves as a collaborator, the anonymization state is preserved upon becoming owner.
 - **Preserved username:** Any previously frozen `original_author_name` is cleared so the new owner's current username displays.
+- **Notifications:** The collaborator receives a pending transfer notification with **Accept Ownership** and **Decline** buttons. After the collaborator responds, the original owner receives a notification indicating whether the reassignment was accepted or declined.
 
 #### Edge Cases
 - The **Reassign Owner** option only appears in **Post Settings** when at least one collaborator exists on the post.
@@ -344,7 +363,7 @@ Only the current post owner can initiate a permission reassignment, and only exi
 - If the old owner wants to fully disconnect from the post after being demoted, they can use the **Leave Collaboration** button.
 
 #### Reversibility
-Permission reassignment is not directly reversible. The demoted owner would need the new owner to reassign ownership back to them. The demoted owner can also leave the collaboration entirely at any time.
+Permission reassignment is not directly reversible once accepted. The original owner would need the new owner to transfer ownership back to them. Unlike previous versions, the original owner does not remain as a collaborator after the transfer is accepted.
  
 ### 2.10 Username Change
  
@@ -445,9 +464,11 @@ Only the user who was invited can accept or decline their own invitation.
 - **Accept — Post:** The user's name is added to the author line alongside the owner and any other collaborators.
 - **Accept — Profile:** The post appears on the new collaborator's profile under their **Posts** tab.
 - **Accept — Editing:** The new collaborator gains access to edit the post and sees collaborator controls (**Edit Blog Post**, **Go Anonymous**, **Leave Collaboration**) on the post detail page.
-- **Accept — Notification count:** The user's notification count decreases by one.
+- **Accept — Notification count:** The accepting user's notification count decreases by one.
+- **Accept — Team notifications:** All existing collaborators and the post owner receive a notification on their **Notifications** page indicating that the new user has joined the collaboration. The notification reads: "[username] accepted the invitation and joined [post title] as a collaborator." Each recipient can independently dismiss the notification.
 - **Decline — Post:** No changes. The post remains as-is.
 - **Decline — Invitation:** The invitation status is set to "declined." The owner can re-invite the user, which resets the existing invitation to pending.
+- **Decline — Inviter notification:** The user who sent the invitation receives a notification on their **Notifications** page indicating the invitation was declined. The notification reads: "[username] declined your invitation to collaborate on [post title]." The inviter can dismiss the notification.
 
 #### Edge Cases
 - If the post is deleted before the user responds, the invitation is deleted and no longer appears in notifications.
@@ -555,7 +576,7 @@ Any active collaborator on a post (excluding the primary owner).
 
 #### Effect on Related Data
 - **Post Owner:** The primary owner's name, visibility settings, and management controls remain unaffected.
-- **Collaborators:** The leaving collaborator's name is permanently removed from the author line, and the collaborator loses all editing and control access. Other collaborator names, visibility, and editing settings are not affected by an individual collaborator's departure.
+- **Collaborators:** The leaving collaborator's name is permanently removed from the author line, and the collaborator loses all editing and control access. Other collaborator names, visibility, and editing settings are not affected by an individual collaborator's departure. All remaining collaborators and the post owner receive a notification on their **Notifications** page indicating that the user has left. The notification reads: "[username] left the collaboration team for [post title]." Each recipient can independently dismiss the notification.
 - **Comments:** Comments left by the departing collaborator on the post remain intact and visible. The author link on those comments continues to point to their user profile. All other comments remain unchanged.
 - **Profile links:** The post is permanently removed from the departing collaborator's profile under posts. The departing collaborator's name and profile link are permanently removed from the author line. All other profiles (primary owner and other collaborators) remain intact.
 - **Post content:** The title, content, and timestamp remain unchanged and publicly visible.
@@ -832,41 +853,74 @@ Any logged-in user who has received a collaboration invitation.
 - Only received invitations appear in notifications. Invitations the user has sent are not displayed here.
 
 
-### 6.2 Transfer Request Updates
- 
+### 6.2 Pending Transfer and Reassignment Requests
+
 #### Description
-When an administrator approves or denies an admin-mediated transfer request, both the requester and the recipient receive a notification on their **Notifications** page. The notification displays whether the request was approved or denied. Each user can independently dismiss their notification after viewing it.
- 
+When a post owner initiates a direct transfer or permission reassignment, the recipient receives a pending transfer request notification on their **Notifications** page. The notification displays who initiated the request, the post title as a clickable link, and the date. The recipient can accept or decline the request directly from the notification.
+
 #### Who Can Use It
-The user who submitted the transfer request and the user who was specified as the recipient.
- 
+Any logged-in user who has been designated as the recipient of a direct transfer or permission reassignment request.
+
 #### How It Works
-1. An administrator changes the transfer request status to "APPROVED" or "DENIED" in the Django admin panel.
-2. Notifications appear on the **Notifications** page for both the requester and the recipient.
-3. Each notification displays the post title, the outcome (approved or denied), and the date.
-4. Each user can select **Dismiss** to clear the notification from their view.
-5. Dismissing is independent — one user dismissing does not affect the other user's notification.
+1. The post owner initiates a direct transfer or permission reassignment from **Post Settings**.
+2. A pending transfer request notification appears on the recipient's **Notifications** page with the message: "[username] wants to transfer ownership of [post title] to you."
+3. The notification includes **Accept Ownership** and **Decline** buttons.
+4. **Accept Ownership:** The transfer request status is set to "APPROVED," automatically executing the transfer. The recipient becomes the new post owner. The original owner receives a notification confirming the transfer was accepted.
+5. **Decline:** The transfer request status is set to "DECLINED." No changes are made to the post. The original owner receives a notification indicating the request was declined.
 
 #### Effect on Related Data
-- **Approved:** The transfer is automatically executed upon approval. The post's ownership changes to the recipient, identical to a direct transfer.
-- **Denied:** No changes are made to the post. The owner retains full ownership.
-- **Notification count:** The notification count in the navigation bar, tracks both pending collaboration invitations and admin-mediated transfer requests.
+- **Accepted:** The post's ownership changes to the recipient. The original owner's Collaboration record is deleted.
+- **Declined:** No changes are made. The owner retains full ownership and can submit a new request.
+- **Notification count:** Pending transfer requests are included in the notification count in the navigation bar.
 
 #### Edge Cases
-- If the post is deleted before the admin responds, the transfer request and its notifications are removed.
-- If either the requester or the recipient deletes their account, their notification is removed but the other user's notification remains.
+- If the post is deleted before the recipient responds, the transfer request is removed.
+- Pending transfer requests are distinct from admin-mediated transfer requests. Direct transfers and permission reassignments go through user-to-user acceptance, while admin-mediated transfers go through administrator approval.
 
 
-### 6.3 Notification Count
- 
+
+### 6.3 Transfer and Collaboration Activity Notifications
+
 #### Description
-The navigation bar displays a count of unresolved notifications next to the **Notifications** link. This count reflects the number of pending collaboration invitations the user has received. The count updates automatically as invitations are accepted, declined, or new ones are received.
- 
+The **Notifications** page displays dismissible activity notifications for transfer outcomes and collaboration events. These notifications inform users about changes to posts they are involved with. Each notification includes a **Dismiss** button that clears it from the user's view independently.
+
+#### Notification Types
+The following activity notifications are supported:
+
+- **Ownership Transferred (APPROVED):** Displayed when a transfer request (direct, permission reassignment, or admin-mediated) is accepted or approved. The notification reads: "Ownership of [post title] has been successfully transferred from [requester] to [recipient]." Displayed with a green left border.
+- **Admin Transfer Denied (DENIED):** Displayed when an administrator denies an admin-mediated transfer request. The notification reads: "The request to transfer [post title] from [requester] to [recipient] was denied by an administrator." Displayed with a red left border.
+- **Transfer Request Declined (DECLINED):** Displayed when a recipient declines a direct transfer or permission reassignment request. The notification reads: "[recipient] declined the request to take ownership of [post title]." Displayed with a red left border.
+- **Collaboration Invitation Declined (INVITE_DECLINED):** Displayed when an invited user declines a collaboration invitation. The notification reads: "[username] declined your invitation to collaborate on [post title]." Displayed with a red left border.
+- **New Collaborator Joined (JOINED):** Displayed to all existing collaborators and the post owner when a new user accepts a collaboration invitation. The notification reads: "[username] accepted the invitation and joined [post title] as a collaborator." Displayed with a blue left border.
+- **Collaborator Left (LEFT):** Displayed to all remaining collaborators and the post owner when a collaborator leaves the post. The notification reads: "[username] left the collaboration team for [post title]." Displayed with an orange left border.
+
+#### Who Can Use It
+Any logged-in user who is involved in a post where one of the above events occurred.
+
 #### How It Works
-1. A context processor runs on every page load and counts the number of pending invitations for the current user.
-2. If the count is greater than zero, it displays as "Notifications (X)" in the navigation bar.
-3. If there are no pending notifications, it displays simply as "Notifications."
+1. Activity notifications are created as `TransferRequest` records with specific status values (APPROVED, DENIED, DECLINED, JOINED, LEFT, INVITE_DECLINED).
+2. Each notification tracks dismissal independently for two parties via the `requester_notified` and `target_notified` boolean fields. A notification appears for a user only if their corresponding field is `False`.
+3. When a user selects **Dismiss**, only their dismissal flag is set to `True`. The other party's notification remains until they dismiss it independently.
+4. Dismissed notifications no longer appear on the **Notifications** page and are excluded from the notification count.
 
 #### Edge Cases
-- The count includes pending collaboration invitations and transfer request notifications.
-- The count updates immediately after accepting or declining an invitation.
+- If either party deletes their account, the notification for the other party remains until dismissed.
+- If the post is deleted, all associated notifications are removed.
+
+### 6.4 Notification Count
+
+#### Description
+The navigation bar displays a count of unresolved notifications next to the **Notifications** link. This count reflects the total number of pending and unresolved notifications across all notification types. The count updates automatically as notifications are created, accepted, declined, or dismissed.
+
+#### How It Works
+1. A context processor (`notification_count`) runs on every page load and calculates three separate counts for the current user:
+   - **Pending collaboration invitations:** Invitations with status "pending" where the current user is the invited user.
+   - **Pending transfer requests:** Transfer requests with status "PENDING" where the current user is the target recipient.
+   - **Activity notifications:** Transfer requests with status "APPROVED," "DENIED," "DECLINED," "JOINED," "LEFT," or "INVITE_DECLINED" where the current user has not yet dismissed the notification (either as the requester with `requester_notified=False` or as the target with `target_notified=False`).
+2. The total count is the sum of all three categories.
+3. If the total is greater than zero, it displays as "Notifications (X)" in the navigation bar.
+4. If there are no unresolved notifications, it displays simply as "Notifications."
+
+#### Edge Cases
+- The count updates immediately after any notification action (accepting, declining, or dismissing).
+- Notifications for deleted posts are automatically removed, which decreases the count.
